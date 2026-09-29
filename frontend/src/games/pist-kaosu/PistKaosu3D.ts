@@ -3,10 +3,11 @@ import type { GameClient } from '../../net/GameClient'
 import { TEAM_COLORS } from '../../net/protocol'
 import type { GameStart } from '../registry'
 import { CarModel, WHEEL_RADIUS } from './car'
-import { DustEffect } from './effects'
+import { DustEffect, SparkEffect } from './effects'
 import { Hud } from './hud'
 import { KeyboardInput } from './input'
-import type { RaceInit, RaceSnapshot } from './types'
+import { SkidMarks } from './skids'
+import type { CarState, RaceInit, RaceSnapshot } from './types'
 import { buildWorld, type World } from './world'
 
 const INPUT_RESEND_MS = 200
@@ -20,6 +21,19 @@ const MAX_SPEED = 340
 const BRAKE_DECELERATION = 250
 /** Çimdeyken saniyede çıkan toz parçası (tam hızda). */
 const DUST_PER_SECOND = 40
+/** Drift'te her arka tekerlekten saniyede çıkan kıvılcım. */
+const SPARKS_PER_SECOND = 45
+/** Bu yana kayma hızının üstünde asfaltta iz kalır. */
+const SKID_SLIP = 55
+/** İki lastik izi arasındaki mesafe. */
+const SKID_SPACING = 5
+const FOV_NORMAL = 50
+const FOV_BOOST = 64
+/** Arka tekerleklerin araba merkezine göre yeri (yerel x geri, z yan). */
+const REAR_WHEELS: [number, number][] = [
+  [-13, 12],
+  [-13, -12],
+]
 
 interface CarView {
   model: CarModel
@@ -34,6 +48,10 @@ interface CarView {
   lastSpeed: number
   braking: boolean
   dustDebt: number
+  sparkDebt: number
+  /** Son lastik izinin bırakıldığı yer; iz aralığını sabit tutmak için. */
+  lastSkidX: number
+  lastSkidZ: number
 }
 
 type CameraMode = 'follow' | 'overview'
@@ -51,6 +69,8 @@ export class PistKaosu3D {
   private readonly race: RaceInit
   private readonly world: World
   private readonly dust: DustEffect
+  private readonly sparks: SparkEffect
+  private readonly skids: SkidMarks
 
   private snapshot: RaceSnapshot | null = null
   private cameraMode: CameraMode = 'follow'
@@ -76,6 +96,8 @@ export class PistKaosu3D {
 
     this.world = buildWorld(this.scene, this.race)
     this.dust = new DustEffect(this.scene)
+    this.sparks = new SparkEffect(this.scene)
+    this.skids = new SkidMarks(this.scene)
     const teamMode = start.mode === 'TEAMS'
     for (const p of this.race.players) {
       const labelColor = teamMode && p.team > 0 ? TEAM_COLORS[p.team] : '#ffffff'
@@ -84,7 +106,7 @@ export class PistKaosu3D {
       model.setVisible(false)
       this.cars.set(p.id, {
         model, x: 0, z: 0, a: 0, placed: false, spin: 0, roll: 0, pitch: 0,
-        steer: 0, lastSpeed: 0, braking: false, dustDebt: 0,
+        steer: 0, lastSpeed: 0, braking: false, dustDebt: 0, sparkDebt: 0, lastSkidX: 0, lastSkidZ: 0,
       })
     }
 
@@ -112,6 +134,8 @@ export class PistKaosu3D {
     this.hud.dispose()
     this.cars.forEach((c) => c.model.dispose())
     this.dust.dispose()
+    this.sparks.dispose()
+    this.skids.dispose()
     this.scene.traverse((obj) => {
       if (obj instanceof THREE.Mesh) {
         obj.geometry.dispose()
@@ -137,6 +161,7 @@ export class PistKaosu3D {
       this.hud.update(this.snapshot)
     }
     this.dust.update(dt)
+    this.sparks.update(dt)
     this.world.update(now / 1000, this.snapshot)
     this.placeCamera(1 - Math.exp(-CAMERA_SMOOTHING * dt))
     this.renderer.render(this.scene, this.camera)
@@ -176,7 +201,8 @@ export class PistKaosu3D {
       // Sunucu durumu ~30 Hz gelir; ivmeyi sadece hız değişince ölç.
       if (s.speed !== car.lastSpeed) {
         const accel = (s.speed - car.lastSpeed) * 30
-        car.braking = s.speed > 5 && accel < -BRAKE_DECELERATION
+        // Turbo bitince azami hıza inerken yanmasın.
+        car.braking = s.speed > 5 && s.speed < MAX_SPEED && accel < -BRAKE_DECELERATION
         car.pitch += (clamp(accel * 0.00012, 0.05) - car.pitch) * 0.3
         car.lastSpeed = s.speed
       }
@@ -190,15 +216,53 @@ export class PistKaosu3D {
         }
       }
 
+      this.emitDriftEffects(car, s, dt)
+
       car.model.update({
         x: car.x, z: car.z, angle: car.a, wheelSpin: car.spin, steer: car.steer,
-        roll: car.roll, pitch: car.pitch, braking: car.braking,
+        roll: car.roll, pitch: car.pitch, braking: car.braking, boost: s.boost,
       })
       car.model.setVisible(true)
     }
     // Oyundan çıkanları gizle.
     for (const [id, car] of this.cars) {
       if (!seen.has(id)) car.model.setVisible(false)
+    }
+  }
+
+  /** Drift'te kıvılcım; drift, sert kayma ve frende asfaltta lastik izi. */
+  private emitDriftEffects(car: CarView, s: CarState, dt: number) {
+    const wheels = REAR_WHEELS.map(([lx, lz]) => localToWorld(car.x, car.z, car.a, lx, lz))
+
+    if (s.drift > 0) {
+      car.sparkDebt += SPARKS_PER_SECOND * dt
+      for (; car.sparkDebt >= 1; car.sparkDebt--) {
+        for (const [wx, wz] of wheels) this.sparks.emit(wx, wz, car.a, s.drift - 1)
+      }
+    }
+
+    const skidding = s.onTrack && (s.drift > 0 || Math.abs(s.slip) > SKID_SLIP || (car.braking && s.speed > 150))
+    if (!skidding) {
+      car.lastSkidX = car.x
+      car.lastSkidZ = car.z
+      return
+    }
+    // Son izden bu yana gidilen yolu eşit aralıklı izlerle doldur; kare hızı düşükse de iz kesintisiz olur.
+    const dx = car.x - car.lastSkidX
+    const dz = car.z - car.lastSkidZ
+    const steps = Math.floor(Math.hypot(dx, dz) / SKID_SPACING)
+    for (let i = 1; i <= steps; i++) {
+      const t = i / steps
+      const px = car.lastSkidX + dx * t
+      const pz = car.lastSkidZ + dz * t
+      for (const [lx, lz] of REAR_WHEELS) {
+        const [wx, wz] = localToWorld(px, pz, car.a, lx, lz)
+        this.skids.add(wx, wz, car.a)
+      }
+    }
+    if (steps > 0) {
+      car.lastSkidX = car.x
+      car.lastSkidZ = car.z
     }
   }
 
@@ -220,7 +284,19 @@ export class PistKaosu3D {
     }
     this.cameraFocus.lerp(target, blend)
     this.camera.position.lerp(desired, blend)
+    if (mine?.boost && this.cameraMode === 'follow') {
+      // Turboda hafif sarsıntı; yumuşatmadan sonra eklenir ki sönmesin.
+      this.camera.position.x += (Math.random() - 0.5) * 3
+      this.camera.position.y += (Math.random() - 0.5) * 3
+    }
     this.camera.lookAt(this.cameraFocus)
+
+    // Turboda görüş açısı genişler: hız hissi.
+    const fov = mine?.boost && this.cameraMode === 'follow' ? FOV_BOOST : FOV_NORMAL
+    if (Math.abs(this.camera.fov - fov) > 0.05) {
+      this.camera.fov += (fov - this.camera.fov) * Math.min(1, blend * 1.5)
+      this.camera.updateProjectionMatrix()
+    }
   }
 
   private resize() {
@@ -231,6 +307,13 @@ export class PistKaosu3D {
     this.camera.aspect = w / h
     this.camera.updateProjectionMatrix()
   }
+}
+
+/** (x, z)'de {@code angle} yönüne bakan arabanın yerel (lx, lz) noktasının dünya konumu. Yerel +x ileri, +z sağ. */
+function localToWorld(x: number, z: number, angle: number, lx: number, lz: number): [number, number] {
+  const c = Math.cos(angle)
+  const s = Math.sin(angle)
+  return [x + c * lx - s * lz, z + s * lx + c * lz]
 }
 
 function wrapAngle(a: number) {

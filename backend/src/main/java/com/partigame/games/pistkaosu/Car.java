@@ -2,16 +2,35 @@ package com.partigame.games.pistkaosu;
 
 final class Car {
 
+    /** Bu süreden uzun drift mavi (seviye 1), diğerinden uzunu turuncu (seviye 2) turbo verir. */
+    static final double DRIFT_LEVEL_1_SECONDS = 0.8;
+    static final double DRIFT_LEVEL_2_SECONDS = 1.6;
+
     final String playerId;
     double x;
     double y;
     double angle;
+    /** Dünya koordinatında hız vektörü; burnun baktığı yönle aynı olmak zorunda değil (kayma). */
+    double vx;
+    double vy;
+    /** Hızın burun yönündeki ve yandaki bileşenleri (her tick yeniden hesaplanır). */
     double speed;
+    double slip;
 
     boolean up;
     boolean down;
     boolean left;
     boolean right;
+    boolean driftHeld;
+
+    boolean drifting;
+    /** Drift yönü: -1 sol, 1 sağ. */
+    int driftDirection;
+    double driftTime;
+    /** Kalan turbo süresi (sn). */
+    double boost;
+    /** Geri sayımda gaza ne kadar süredir basıldığı; roket start için. */
+    double throttleHeld;
 
     /** Sıradaki kontrol noktası ve şimdiye kadar geçilen toplam kontrol noktası. */
     int nextCheckpoint;
@@ -29,5 +48,16 @@ final class Car {
         this.x = x;
         this.y = y;
         this.angle = angle;
+    }
+
+    int steerInput() {
+        return (right ? 1 : 0) - (left ? 1 : 0);
+    }
+
+    int driftLevel() {
+        if (driftTime >= DRIFT_LEVEL_2_SECONDS) {
+            return 2;
+        }
+        return driftTime >= DRIFT_LEVEL_1_SECONDS ? 1 : 0;
     }
 }

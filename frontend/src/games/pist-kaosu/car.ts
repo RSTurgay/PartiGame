@@ -16,6 +16,7 @@ export interface CarPose {
   roll: number
   pitch: number
   braking: boolean
+  boost: boolean
 }
 
 /** Low-poly araba. Yerel +x ileri yöndür; {@link CarModel.root} sunucu açısıyla döndürülür. */
@@ -26,6 +27,7 @@ export class CarModel {
   private readonly steerPivots: THREE.Group[] = []
   private readonly brakeLight: THREE.MeshStandardMaterial
   private readonly brakeGlow: THREE.Mesh
+  private readonly flames: THREE.Group[] = []
   private readonly label: THREE.Sprite
   private readonly disposables: { dispose(): void }[] = []
 
@@ -74,6 +76,7 @@ export class CarModel {
     this.root.add(this.body)
 
     this.addWheels()
+    this.addExhaust(trim)
 
     if (isMe) {
       const ring = new THREE.Mesh(
@@ -127,6 +130,45 @@ export class CarModel {
     }
   }
 
+  /** İki egzoz borusu ve turboda çıkan alevler (dış turuncu, iç sarı koni). */
+  private addExhaust(pipeMaterial: THREE.Material) {
+    const pipeGeo = this.track(new THREE.CylinderGeometry(1.6, 1.6, 4, 8))
+    const outerGeo = this.track(new THREE.ConeGeometry(3.2, 16, 10))
+    const innerGeo = this.track(new THREE.ConeGeometry(1.8, 10, 8))
+    const flameMaterial = (color: number) =>
+      this.track(
+        new THREE.MeshBasicMaterial({
+          color,
+          transparent: true,
+          opacity: 0.9,
+          blending: THREE.AdditiveBlending,
+          depthWrite: false,
+        }),
+      )
+    const outerMat = flameMaterial(0xff7a1a)
+    const innerMat = flameMaterial(0xfff0a0)
+
+    for (const z of [-5, 5]) {
+      const pipe = new THREE.Mesh(pipeGeo, pipeMaterial)
+      pipe.rotation.z = Math.PI / 2
+      pipe.position.set(-21, 6, z)
+      this.body.add(pipe)
+
+      // Koni ucu +y'dedir; z etrafında +90° döndürünce uç arkaya (-x) bakar.
+      const flame = new THREE.Group()
+      const outer = new THREE.Mesh(outerGeo, outerMat)
+      const inner = new THREE.Mesh(innerGeo, innerMat)
+      outer.position.y = 8
+      inner.position.y = 5
+      flame.add(outer, inner)
+      flame.rotation.z = Math.PI / 2
+      flame.position.set(-23, 6, z)
+      flame.visible = false
+      this.body.add(flame)
+      this.flames.push(flame)
+    }
+  }
+
   /** Etiket arabayla dönmesin diye ayrı eklenir. */
   addTo(scene: THREE.Scene) {
     scene.add(this.root, this.label)
@@ -141,6 +183,11 @@ export class CarModel {
     for (const p of this.steerPivots) p.rotation.y = -pose.steer * MAX_STEER_ANGLE
     this.brakeLight.emissiveIntensity = pose.braking ? 3 : 0
     this.brakeGlow.visible = pose.braking
+    for (const flame of this.flames) {
+      flame.visible = pose.boost
+      // Alevin boyu her karede biraz değişir, titreşir.
+      if (pose.boost) flame.scale.set(0.9 + Math.random() * 0.3, 0.7 + Math.random() * 0.6, 0.9 + Math.random() * 0.3)
+    }
     this.label.position.set(pose.x, 54, pose.z)
   }
 

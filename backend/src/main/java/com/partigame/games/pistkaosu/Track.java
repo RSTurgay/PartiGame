@@ -23,6 +23,10 @@ final class Track {
             {300, 150}
     };
     private static final int SAMPLES_PER_SEGMENT = 10;
+    /** Turbo şeritlerinin bulunduğu pist noktaları (üst ve alt düzlükler). */
+    private static final int[] BOOST_PAD_POINTS = {15, 95};
+    private static final double BOOST_PAD_LENGTH = 70;
+    private static final double BOOST_PAD_WIDTH = 64;
 
     final double[] xs;
     final double[] ys;
@@ -82,6 +86,25 @@ final class Track {
     double heading(int i) {
         int j = wrap(i + 1);
         return Math.atan2(ys[j] - ys[wrap(i)], xs[j] - xs[wrap(i)]);
+    }
+
+    List<BoostPad> boostPads() {
+        List<BoostPad> pads = new ArrayList<>();
+        for (int i : BOOST_PAD_POINTS) {
+            pads.add(new BoostPad(xs[i], ys[i], heading(i), BOOST_PAD_LENGTH, BOOST_PAD_WIDTH));
+        }
+        return pads;
+    }
+
+    /** Pist üzerinde, gidiş yönüne hizalı dikdörtgen turbo şeridi. */
+    record BoostPad(double x, double y, double angle, double length, double width) {
+
+        boolean contains(double px, double py) {
+            double dx = px - x, dy = py - y;
+            double along = dx * Math.cos(angle) + dy * Math.sin(angle);
+            double across = -dx * Math.sin(angle) + dy * Math.cos(angle);
+            return Math.abs(along) < length / 2 && Math.abs(across) < width / 2;
+        }
     }
 
     List<int[]> points() {

@@ -28,6 +28,23 @@ final class PistKaosuSession implements GameSession {
     private static final double MAX_REVERSE = -140;
     private static final double ROLLING_FRICTION = 1.4;
     private static final double TURN_RATE = 3.3;
+    /** Yanal tutunma: büyüdükçe araba burnunun yönüne daha hızlı hizalanır, küçüldükçe kayar. */
+    private static final double GRIP_TRACK = 14;
+    private static final double GRIP_GRASS = 7;
+    private static final double GRIP_DRIFT = 3.2;
+
+    private static final double DRIFT_MIN_SPEED = 170;
+    /** Drift'te tuşa basılmazken dönüş gücü; iç tarafa basmak sıkılaştırır, dış tarafa basmak açar. */
+    private static final double DRIFT_STEER_BASE = 0.7;
+    private static final double DRIFT_STEER_RANGE = 0.4;
+    private static final double MAX_SPEED_BOOST = 470;
+    private static final double BOOST_ACCELERATION = 1100;
+    static final double MINI_TURBO_SECONDS = 0.6;
+    static final double SUPER_TURBO_SECONDS = 1.2;
+    private static final double BOOST_PAD_SECONDS = 0.9;
+    private static final double ROCKET_START_SECONDS = 1.0;
+    /** Gaza son bu kadar saniye içinde basılmışsa roket start; daha erken basan kaçırır. */
+    private static final double ROCKET_START_WINDOW = 0.8;
     private static final double CAR_RADIUS = 18;
     /** Kontrol noktası ararken bakılan pencere; kısa yoldan kesmeyi engeller. */
     private static final int SEARCH_WINDOW = 3;
@@ -36,6 +53,7 @@ final class PistKaosuSession implements GameSession {
     private enum Phase { COUNTDOWN, RACE, DONE }
 
     private final Track track = Track.standard();
+    private final List<Track.BoostPad> boostPads = track.boostPads();
     private final List<PlayerInfo> players;
     private final Map<String, Car> cars = new LinkedHashMap<>();
     private Phase phase = Phase.COUNTDOWN;
@@ -68,7 +86,7 @@ final class PistKaosuSession implements GameSession {
 
     @Override
     public Object initData() {
-        return new Init(Track.WIDTH, Track.HEIGHT, Track.TRACK_WIDTH, LAPS, track.points(), players);
+        return new Init(Track.WIDTH, Track.HEIGHT, Track.TRACK_WIDTH, LAPS, track.points(), boostPads, players);
     }
 
     @Override
@@ -81,6 +99,7 @@ final class PistKaosuSession implements GameSession {
         car.down = flag(input, "down");
         car.left = flag(input, "left");
         car.right = flag(input, "right");
+        car.driftHeld = flag(input, "drift");
     }
 
     private static boolean flag(Map<String, Object> input, String key) {
@@ -97,12 +116,25 @@ final class PistKaosuSession implements GameSession {
         switch (phase) {
             case COUNTDOWN -> {
                 countdown -= dt;
+                for (Car car : cars.values()) {
+                    car.throttleHeld = car.up ? car.throttleHeld + dt : 0;
+                }
                 if (countdown <= 0) {
                     phase = Phase.RACE;
+                    rocketStart();
                 }
             }
             case RACE -> updateRace(dt);
             case DONE -> {
+            }
+        }
+    }
+
+    /** Gaza tam zamanında (son anda) basanlar kalkışta turbo alır. */
+    private void rocketStart() {
+        for (Car car : cars.values()) {
+            if (car.throttleHeld > 0 && car.throttleHeld <= ROCKET_START_WINDOW) {
+                car.boost = ROCKET_START_SECONDS;
             }
         }
     }
@@ -114,7 +146,12 @@ final class PistKaosuSession implements GameSession {
                 drive(car, dt);
                 trackProgress(car);
             } else {
-                car.speed *= Math.max(0, 1 - 3 * dt);
+                double decay = Math.max(0, 1 - 3 * dt);
+                car.vx *= decay;
+                car.vy *= decay;
+                car.speed *= decay;
+                car.drifting = false;
+                car.boost = 0;
                 move(car, dt);
             }
         }
@@ -130,38 +167,93 @@ final class PistKaosuSession implements GameSession {
         }
     }
 
+    /**
+     * Hız vektörü burun yönüne göre ileri ve yan bileşenlere ayrılır. İleri bileşeni gaz/fren değiştirir,
+     * yan bileşen tutunmayla söner. Araba döndüğünde hız eski yönde kalmaya çalışır; tutunma zayıfsa
+     * (drift, çim) araba yana kayar.
+     */
     private void drive(Car car, double dt) {
         car.onTrack = distanceToTrack(car) <= Track.TRACK_WIDTH / 2 + Track.CURB_WIDTH;
-        double maxSpeed = car.onTrack ? MAX_SPEED_TRACK : MAX_SPEED_GRASS;
+        car.boost = Math.max(0, car.boost - dt);
+        for (Track.BoostPad pad : boostPads) {
+            if (pad.contains(car.x, car.y)) {
+                car.boost = Math.max(car.boost, BOOST_PAD_SECONDS);
+            }
+        }
+        boolean boosting = car.boost > 0;
+        double maxSpeed = boosting ? MAX_SPEED_BOOST : car.onTrack ? MAX_SPEED_TRACK : MAX_SPEED_GRASS;
 
-        if (car.up) {
-            car.speed += ACCELERATION * dt;
+        double fx = Math.cos(car.angle), fy = Math.sin(car.angle);
+        double forward = car.vx * fx + car.vy * fy;
+        double lateral = -car.vx * fy + car.vy * fx;
+
+        if (boosting) {
+            forward += BOOST_ACCELERATION * dt;
+        } else if (car.up) {
+            forward += ACCELERATION * dt;
         } else if (car.down) {
-            car.speed -= (car.speed > 0 ? BRAKE : ACCELERATION * 0.6) * dt;
+            forward -= (forward > 0 ? BRAKE : ACCELERATION * 0.6) * dt;
         } else {
-            car.speed *= Math.max(0, 1 - ROLLING_FRICTION * dt);
+            forward *= Math.max(0, 1 - ROLLING_FRICTION * dt);
         }
-        if (car.speed > maxSpeed) {
-            // Çimde ani durma yerine hızlıca yavaşla.
-            car.speed = Math.max(maxSpeed, car.speed - 900 * dt);
+        if (forward > maxSpeed) {
+            // Çimde ya da turbo bitince ani durma yerine hızlıca yavaşla.
+            forward = Math.max(maxSpeed, forward - 900 * dt);
         }
-        car.speed = Math.max(MAX_REVERSE, car.speed);
+        forward = Math.max(MAX_REVERSE, forward);
+
+        updateDrift(car, forward, dt);
+        double grip = car.drifting ? GRIP_DRIFT : car.onTrack ? GRIP_TRACK : GRIP_GRASS;
+        lateral *= Math.exp(-grip * dt);
+
+        car.vx = fx * forward - fy * lateral;
+        car.vy = fy * forward + fx * lateral;
+        car.speed = forward;
+        car.slip = lateral;
 
         // Dururken dönülmez; hız arttıkça dönüş tam güce ulaşır.
-        double steer = (car.right ? 1 : 0) - (car.left ? 1 : 0);
-        double grip = Math.min(1, Math.abs(car.speed) / 120) * Math.signum(car.speed);
-        car.angle += steer * TURN_RATE * grip * dt;
+        double steer = car.steerInput();
+        if (car.drifting) {
+            // Drift'te araba sürekli drift yönüne döner; tuşlar sadece dönüşün sertliğini ayarlar.
+            steer = car.driftDirection * (DRIFT_STEER_BASE + DRIFT_STEER_RANGE * steer * car.driftDirection);
+        }
+        double steerGrip = Math.min(1, Math.abs(forward) / 120) * Math.signum(forward);
+        car.angle += steer * TURN_RATE * steerGrip * dt;
 
         move(car, dt);
     }
 
+    /** Boşluk + yön ile drift başlar; bırakınca süresine göre turbo verir. */
+    static void updateDrift(Car car, double forward, double dt) {
+        if (!car.drifting) {
+            if (car.driftHeld && car.steerInput() != 0 && forward >= DRIFT_MIN_SPEED && car.onTrack) {
+                car.drifting = true;
+                car.driftDirection = car.steerInput();
+                car.driftTime = 0;
+            }
+            return;
+        }
+        car.driftTime += dt;
+        boolean released = !car.driftHeld;
+        if (released || forward < DRIFT_MIN_SPEED * 0.6 || !car.onTrack) {
+            // Sadece düzgün bitirilen drift ödüllendirilir; çime kaçan ya da yavaşlayan kaybeder.
+            int level = car.driftLevel();
+            if (released && car.onTrack && level > 0) {
+                car.boost = Math.max(car.boost, level == 1 ? MINI_TURBO_SECONDS : SUPER_TURBO_SECONDS);
+            }
+            car.drifting = false;
+            car.driftTime = 0;
+        }
+    }
+
     private void move(Car car, double dt) {
-        car.x += Math.cos(car.angle) * car.speed * dt;
-        car.y += Math.sin(car.angle) * car.speed * dt;
+        car.x += car.vx * dt;
+        car.y += car.vy * dt;
         double clampedX = Math.max(CAR_RADIUS, Math.min(Track.WIDTH - CAR_RADIUS, car.x));
         double clampedY = Math.max(CAR_RADIUS, Math.min(Track.HEIGHT - CAR_RADIUS, car.y));
         if (clampedX != car.x || clampedY != car.y) {
-            car.speed *= 0.3;
+            car.vx *= 0.3;
+            car.vy *= 0.3;
             car.x = clampedX;
             car.y = clampedY;
         }
@@ -229,8 +321,10 @@ final class PistKaosuSession implements GameSession {
                 a.y -= ny * push;
                 b.x += nx * push;
                 b.y += ny * push;
-                a.speed *= 0.85;
-                b.speed *= 0.85;
+                a.vx *= 0.85;
+                a.vy *= 0.85;
+                b.vx *= 0.85;
+                b.vy *= 0.85;
             }
         }
     }
@@ -258,9 +352,10 @@ final class PistKaosuSession implements GameSession {
         List<CarView> views = new ArrayList<>(cars.size());
         for (Car c : cars.values()) {
             int lap = Math.min(LAPS, Math.max(1, (c.passed - 1) / track.size + 1));
-            int steer = c.finished ? 0 : (c.right ? 1 : 0) - (c.left ? 1 : 0);
+            int steer = c.finished ? 0 : c.drifting ? c.driftDirection : c.steerInput();
+            int drift = c.drifting ? c.driftLevel() + 1 : 0;
             views.add(new CarView(c.playerId, round(c.x), round(c.y), round(c.angle), round(c.speed),
-                    steer, lap, c.place, c.finished, c.onTrack));
+                    round(c.slip), steer, drift, c.boost > 0, lap, c.place, c.finished, c.onTrack));
         }
         return new Snapshot(phase.name(), round(Math.max(0, countdown)), round(raceTime),
                 graceStarted ? round(Math.max(0, finishTimer)) : -1, views);
@@ -295,14 +390,18 @@ final class PistKaosuSession implements GameSession {
         return String.format(Locale.ROOT, "%d:%04.1f", min, seconds - min * 60);
     }
 
-    record Init(int width, int height, double trackWidth, int laps, List<int[]> points, List<PlayerInfo> players) {
+    record Init(int width, int height, double trackWidth, int laps, List<int[]> points,
+                List<Track.BoostPad> boostPads, List<PlayerInfo> players) {
     }
 
     record Snapshot(String phase, double countdown, double time, double finishTimer, List<CarView> cars) {
     }
 
-    /** {@code steer}: -1 sol, 0 düz, 1 sağ; ön tekerleklerin görsel dönüşü için. */
-    record CarView(String id, double x, double y, double a, double speed, int steer, int lap, int place,
-                   boolean finished, boolean onTrack) {
+    /**
+     * {@code slip}: yana kayma hızı (lastik izi için). {@code steer}: -1 sol, 0 düz, 1 sağ.
+     * {@code drift}: 0 yok, 1 drift (şarj yok), 2 mavi, 3 turuncu turbo şarjı.
+     */
+    record CarView(String id, double x, double y, double a, double speed, double slip, int steer, int drift,
+                   boolean boost, int lap, int place, boolean finished, boolean onTrack) {
     }
 }

@@ -422,6 +422,32 @@ label {
   font-size: clamp(56px, 10vw, 120px);
 }
 
+.pk-drift {
+  position: absolute;
+  left: 50%;
+  bottom: 22px;
+  transform: translateX(-50%);
+  padding: 8px 18px;
+  border-radius: 999px;
+  font-size: clamp(14px, 1.8vw, 20px);
+  letter-spacing: 1px;
+  background: #0009;
+  border: 2px solid #fff6;
+  white-space: nowrap;
+}
+
+.pk-drift[data-level='2'] {
+  border-color: #4db8ff;
+  color: #9bd8ff;
+  box-shadow: 0 0 18px #4db8ff88;
+}
+
+.pk-drift[data-level='3'] {
+  border-color: #ff9a2e;
+  color: #ffc98a;
+  box-shadow: 0 0 22px #ff9a2eaa;
+}
+
 .pk-minimap {
   position: absolute;
   left: 14px;

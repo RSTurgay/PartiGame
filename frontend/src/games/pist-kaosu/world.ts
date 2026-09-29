@@ -19,6 +19,7 @@ export function buildWorld(scene: THREE.Scene, race: RaceInit): World {
   addLights(scene, race)
   addGround(scene, race)
   addTrack(scene, race)
+  const boostPads = addBoostPads(scene, race)
   const startLights = addStartLine(scene, race)
   addBarriers(scene, race)
   const nature = new Nature(scene, race, CURB_WIDTH)
@@ -27,6 +28,8 @@ export function buildWorld(scene: THREE.Scene, race: RaceInit): World {
   return {
     update(time, snap) {
       nature.update(time)
+      // Oklar gidiş yönünde akar.
+      boostPads.offset.x = -((time * 1.8) % 1)
       if (snap) startLights.update(snap)
     },
   }
@@ -146,6 +149,46 @@ function addTrack(scene: THREE.Scene, race: RaceInit) {
   scene.add(ribbon(pts, half, half + CURB_WIDTH, 0.8, curb))
   scene.add(ribbon(pts, -half - CURB_WIDTH, -half, 0.8, curb))
   scene.add(ribbon(pts, -2, 2, 0.9, (i) => (i % 2 === 0 ? 0xdddddd : null)))
+}
+
+/** Parlayan, oklarla akan turbo şeritleri. Hepsi aynı dokuyu paylaşır; dönen değer o dokudur. */
+function addBoostPads(scene: THREE.Scene, race: RaceInit) {
+  const canvas = document.createElement('canvas')
+  canvas.width = 64
+  canvas.height = 64
+  const ctx = canvas.getContext('2d')!
+  ctx.fillStyle = '#ff7a1a'
+  ctx.fillRect(0, 0, 64, 64)
+  // Sağa bakan ok (">" şekli); doku gidiş yönünde tekrarlanır.
+  ctx.fillStyle = '#fff3a0'
+  ctx.beginPath()
+  ctx.moveTo(14, 6)
+  ctx.lineTo(40, 32)
+  ctx.lineTo(14, 58)
+  ctx.lineTo(28, 58)
+  ctx.lineTo(54, 32)
+  ctx.lineTo(28, 6)
+  ctx.closePath()
+  ctx.fill()
+  const texture = new THREE.CanvasTexture(canvas)
+  texture.wrapS = THREE.RepeatWrapping
+  texture.colorSpace = THREE.SRGBColorSpace
+
+  // Şeritler aynı boyutta; oklar kare kalsın diye doku uzunluk/genişlik oranında tekrarlanır.
+  const first = race.boostPads[0]
+  if (first) texture.repeat.set((first.length / first.width) * 2, 1)
+  const material = new THREE.MeshBasicMaterial({ map: texture, transparent: true, opacity: 0.92 })
+
+  for (const pad of race.boostPads) {
+    const mesh = new THREE.Mesh(new THREE.PlaneGeometry(pad.length, pad.width), material)
+    mesh.rotation.x = -Math.PI / 2
+    const holder = new THREE.Group()
+    holder.position.set(pad.x, 1.1, pad.y)
+    holder.rotation.y = -pad.angle
+    holder.add(mesh)
+    scene.add(holder)
+  }
+  return texture
 }
 
 function addStartLine(scene: THREE.Scene, race: RaceInit) {

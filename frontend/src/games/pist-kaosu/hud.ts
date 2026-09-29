@@ -10,6 +10,7 @@ export class Hud {
   private readonly standings = el('ol', 'pk-standings')
   private readonly center = el('div', 'pk-center')
   private readonly hint = el('div', 'pk-hint')
+  private readonly drift = el('div', 'pk-drift')
   private readonly minimap = document.createElement('canvas')
   private readonly race: RaceInit
   private readonly names: Map<string, { name: string; color: string }>
@@ -24,8 +25,8 @@ export class Hud {
     this.minimap.className = 'pk-minimap'
     this.minimap.width = MINIMAP_WIDTH * 2
     this.minimap.height = Math.round((MINIMAP_WIDTH * race.height) / race.width) * 2
-    this.hint.textContent = 'C: kamerayı değiştir'
-    this.root.append(this.lap, this.time, this.standings, this.center, this.minimap, this.hint)
+    this.hint.textContent = 'Boşluk + yön: drift · C: kamera'
+    this.root.append(this.lap, this.time, this.standings, this.center, this.drift, this.minimap, this.hint)
     parent.appendChild(this.root)
   }
 
@@ -35,12 +36,21 @@ export class Hud {
     this.time.textContent = formatTime(snap.time)
     this.updateStandings(snap.cars)
     this.center.textContent = centerMessage(snap, me)
-    this.center.classList.toggle('big', snap.phase === 'COUNTDOWN' || snap.time < 1)
+    this.center.classList.toggle('big', snap.phase === 'COUNTDOWN' || (snap.time < 1 && !me?.boost))
+    this.updateDrift(me)
     this.drawMinimap(snap.cars)
   }
 
   dispose() {
     this.root.remove()
+  }
+
+  /** Drift şarj göstergesi: şarjsız → mavi → turuncu. */
+  private updateDrift(me: CarState | undefined) {
+    const level = me && !me.finished ? me.drift : 0
+    this.drift.hidden = level === 0
+    this.drift.dataset.level = String(level)
+    this.drift.textContent = DRIFT_LABELS[level] ?? ''
   }
 
   private updateStandings(cars: CarState[]) {
@@ -93,14 +103,18 @@ export class Hud {
 
 function centerMessage(snap: RaceSnapshot, me: CarState | undefined) {
   if (snap.phase === 'COUNTDOWN') return String(Math.ceil(snap.countdown))
+  if (snap.time < 1.5 && me?.boost) return '🚀 ROKET START!'
   if (snap.time < 1) return 'BAŞLA!'
   if (me?.finished) {
     return snap.finishTimer >= 0 ? `${me.place}. oldun! · ${Math.ceil(snap.finishTimer)} sn` : `${me.place}. oldun!`
   }
   if (snap.finishTimer >= 0) return `Son ${Math.ceil(snap.finishTimer)} sn!`
+  if (me?.boost) return '🔥 TURBO!'
   if (me && !me.onTrack) return 'Piste dön!'
   return ''
 }
+
+const DRIFT_LABELS = ['', 'DRIFT', 'DRIFT · MİNİ TURBO ⚡', 'DRIFT · SÜPER TURBO ⚡⚡']
 
 function el(tag: string, className: string) {
   const e = document.createElement(tag)

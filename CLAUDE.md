@@ -76,7 +76,17 @@ frontend/src/
 - Puan: 10-7-5-3-2-1. Takım modunda istemci takım toplamını hesaplar.
 - Görsel süsler istemcide sunucu durumundan türetilir: tekerlek dönüşü, direksiyon (`steer` sunucudan gelir),
   virajda yatma, fren lambası (yavaşlamadan çıkarılır), çimde toz.
-- Kamera: yüksek açılı takip (`FOLLOW_OFFSET`); **C** tuşu tüm pist görünümüne geçirir.
+- Kamera: yüksek açılı takip (`FOLLOW_OFFSET`); **C** tuşu tüm pist görünümüne geçirir. Turboda FOV genişler, kamera titrer.
+- **Fizik:** Arabanın hız vektörü (`vx, vy`) burun yönünden bağımsızdır. Her tick hız ileri/yan bileşenlere
+  ayrılır; yan bileşen tutunmayla söner (`GRIP_TRACK` 14, `GRIP_GRASS` 7, `GRIP_DRIFT` 3.2). Tutunma
+  düştükçe araba kayar.
+- **Drift:** Boşluk/Shift + yön, hız ≥ 170 ve pistteyken başlar. Araba sürekli drift yönüne döner;
+  iç tarafa basmak sıkılaştırır, dış tarafa basmak açar. Bırakınca 0.8 sn üstü mini turbo (0.6 sn, mavi),
+  1.6 sn üstü süper turbo (1.2 sn, turuncu). Çime kaçan ya da yavaşlayan drift ödül vermez.
+- **Turbo:** Azami hız 470. Kaynaklar: drift, turbo şeritleri (`Track.BOOST_PAD_POINTS`, 0.9 sn) ve
+  roket start (gaza yeşilden önceki son 0.8 sn içinde basmak, 1 sn). Erken basan roket start alamaz.
+- İstemci efektleri (`effects.ts`, `skids.ts`): drift kıvılcımı (şarj rengine göre), lastik izi (drift, kayma, sert fren;
+  kare hızından bağımsız, yol boyunca doldurulur), egzoz alevi, turbo şeridinde akan oklar, HUD drift göstergesi.
 
 ## Kurallar ve dikkat edilecekler
 - Phaser/Three sahne sınıflarında motorun kendi metot adlarıyla çakışan alan adı kullanma
@@ -88,10 +98,12 @@ frontend/src/
 - Tüm kullanıcı metinleri Türkçe.
 
 ## Test
+- `mvnw.cmd test`: `PistKaosuSessionTest` roket start, erken gaz, turbo şeridi ve drift turbosu kurallarını test eder.
 - `node tools/race-bots.mjs`: iki bot oda kurar, takım moduna geçer, yarışı sonuna kadar oynar.
   Yetki kontrolünü, sonuçları, puanları ve lobiye dönüşü doğrular. Sadece backend gerekir.
 - `cd tools && npm install && node browser-test.mjs`: gerçek Chrome ile iki oyuncu, ekran görüntüleri
-  `tools/screenshots/` altına kaydedilir. Backend ve Vite açık olmalı. Headless FPS gerçekçi değildir.
+  `tools/screenshots/` altına kaydedilir. Backend ve Vite açık olmalı. Headless ortamda saniyede 2-6 kare
+  çizilir; zamanlamaya bağlı sahneler (drift anı, roket start) her koşuda aynı yere denk gelmeyebilir.
 
 ## Yapılanlar
 - [x] Oda sistemi: 4 haneli kod, davet linki (`?oda=KOD`), en fazla 8 oyuncu, oda sahibi, parti puan tablosu
@@ -101,13 +113,16 @@ frontend/src/
 - [x] Detaylar: dönen ön tekerlekler, jantlar, fren lambası ve parlaması, gövde yatması, toz,
       rüzgârda sallanan üç tür ağaç, çalı ve kaya, F1 tarzı start ışıkları
 - [x] HUD: tur, sıra, süre, canlı sıralama, mini harita, "Piste dön!" uyarısı
+- [x] Drift ve turbo: kayma fiziği, şarjlı drift turbosu, turbo şeritleri, roket start, kıvılcım, lastik izi,
+      egzoz alevi, turboda kamera efekti, drift göstergesi
 
 ## Yol haritası (sıradaki önce)
-1. [ ] **Drift ve turbo hissi**: virajda kayma (sunucu fiziği), lastik izi, hız efektleri, turbo
-2. [ ] **Sürpriz kutuları**: ⚡ turbo, 🍌 muz, 🧊 buz, 🛡️ kalkan; geridekilere daha iyi eşya
-3. [ ] **Takım mekanikleri**: takım arkadaşının arkasında rüzgâr desteği, eşya pası
-4. [ ] **Birden fazla harita**: backend'de harita tanımları, lobide harita seçimi, temalar (kar, çöl, gece)
-5. [ ] **Yayın**: Dockerfile ve Fly.io (Frankfurt), herkesin erişebileceği adres
-6. [ ] Yeniden bağlanma (sayfa yenilenince odaya geri dönme; şu an oyuncu odadan düşüyor)
-7. [ ] Ses efektleri ve müzik, dokunmatik ve mobil kontroller
-8. [ ] Yeni mini oyunlar (parti platformu fikri: Bomberman tarzı, futbol ve benzeri)
+1. [ ] **Sürpriz kutuları**: ⚡ turbo, 🍌 muz, 🧊 buz, 🛡️ kalkan; geridekilere daha iyi eşya.
+      Eşya tuşu **E** (Boşluk drift'e ayrıldı)
+2. [ ] **Takım mekanikleri**: takım arkadaşının arkasında rüzgâr desteği, eşya pası
+3. [ ] **Birden fazla harita**: backend'de harita tanımları, lobide harita seçimi, temalar (kar, çöl, gece).
+      Turbo şeritleri haritaya özel olmalı (şu an `Track.BOOST_PAD_POINTS`)
+4. [ ] **Yayın**: Dockerfile ve Fly.io (Frankfurt), herkesin erişebileceği adres
+5. [ ] Yeniden bağlanma (sayfa yenilenince odaya geri dönme; şu an oyuncu odadan düşüyor)
+6. [ ] Ses efektleri ve müzik (motor, drift, turbo), dokunmatik ve mobil kontroller
+7. [ ] Yeni mini oyunlar (parti platformu fikri: Bomberman tarzı, futbol ve benzeri)
