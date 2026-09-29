@@ -85,6 +85,13 @@ frontend/src/
   1.6 sn üstü süper turbo (1.2 sn, turuncu). Çime kaçan ya da yavaşlayan drift ödül vermez.
 - **Turbo:** Azami hız 470. Kaynaklar: drift, turbo şeritleri (`Track.BOOST_PAD_POINTS`, 0.9 sn) ve
   roket start (gaza yeşilden önceki son 0.8 sn içinde basmak, 1 sn). Erken basan roket start alamaz.
+- **Eşyalar** (`ItemSystem`, istemcide `items.ts`): 3 sıra × 4 sürpriz kutusu (`BOX_ROW_POINTS` 35/75/115),
+  alınan kutu 3 sn sonra geri gelir. 1 sn çark sonrası eşya gelir, **E** ile kullanılır (basış anı; basılı tutmak tekrar kullanmaz).
+  ⚡ turbo 1.2 sn · 🍌 muz arkaya bırakılır, basan 1.1 sn döner (bırakan 1 sn bağışık, en fazla 12 muz) ·
+  🧊 buz hemen öndeki rakibi 1.5 sn dondurur (birinciyse arkadakini; takım arkadaşına gitmez) · 🛡️ kalkan 8 sn, bir saldırıyı engeller.
+  Çark sıraya göre ağırlıklı: birinciye savunma (muz, kalkan), sonuncuya saldırı ve turbo.
+  Sunucu olayları (`pickup/use/hit/block`) snapshot'ta `events` ile gelir; **her snapshot bir kez işlenir**
+  (istemcide `state` mesajı gelince, çizim döngüsünde değil). Dönen ya da donan araba kontrol edilemez (`Car.disabled()`).
 - İstemci efektleri (`effects.ts`, `skids.ts`): drift kıvılcımı (şarj rengine göre), lastik izi (drift, kayma, sert fren;
   kare hızından bağımsız, yol boyunca doldurulur), egzoz alevi, turbo şeridinde akan oklar, HUD drift göstergesi.
 
@@ -98,12 +105,17 @@ frontend/src/
 - Tüm kullanıcı metinleri Türkçe.
 
 ## Test
-- `mvnw.cmd test`: `PistKaosuSessionTest` roket start, erken gaz, turbo şeridi ve drift turbosu kurallarını test eder.
-- `node tools/race-bots.mjs`: iki bot oda kurar, takım moduna geçer, yarışı sonuna kadar oynar.
+- `mvnw.cmd test`: `PistKaosuSessionTest` roket start, erken gaz, turbo şeridi ve drift turbosu kurallarını,
+  `ItemSystemTest` çark adaletini, buz hedefini (takım dahil), kutu alma, muz, kalkan ve tek basış kuralını test eder.
+- `node tools/race-bots.mjs`: iki bot oda kurar, takım moduna geçer, eşya kullanarak yarışı sonuna kadar oynar
+  ve eşya olaylarını sayar.
   Yetki kontrolünü, sonuçları, puanları ve lobiye dönüşü doğrular. Sadece backend gerekir.
 - `cd tools && npm install && node browser-test.mjs`: gerçek Chrome ile iki oyuncu, ekran görüntüleri
   `tools/screenshots/` altına kaydedilir. Backend ve Vite açık olmalı. Headless ortamda saniyede 2-6 kare
   çizilir; zamanlamaya bağlı sahneler (drift anı, roket start) her koşuda aynı yere denk gelmeyebilir.
+- `cd tools && node spectate-bots.mjs`: tarayıcı oyuncusu (otopilotla) ve eşya kullanan iki bot yarışır, 3 sn'de bir
+  ekran görüntüsü alınır. Headless'ta otopilot yavaş kaldığı için tarayıcı arabası iyi süremez; botların eşya
+  efektleri ve olay akışı görülür.
 
 ## Yapılanlar
 - [x] Oda sistemi: 4 haneli kod, davet linki (`?oda=KOD`), en fazla 8 oyuncu, oda sahibi, parti puan tablosu
@@ -115,14 +127,15 @@ frontend/src/
 - [x] HUD: tur, sıra, süre, canlı sıralama, mini harita, "Piste dön!" uyarısı
 - [x] Drift ve turbo: kayma fiziği, şarjlı drift turbosu, turbo şeritleri, roket start, kıvılcım, lastik izi,
       egzoz alevi, turboda kamera efekti, drift göstergesi
+- [x] Sürpriz kutuları: dönen gökkuşağı kutular, çark, turbo/muz/buz/kalkan, uçan buz parçası, buz bloğu,
+      kalkan balonu, HUD eşya yuvası ve olay akışı ("🧊 Ayşe → Can")
 
 ## Yol haritası (sıradaki önce)
-1. [ ] **Sürpriz kutuları**: ⚡ turbo, 🍌 muz, 🧊 buz, 🛡️ kalkan; geridekilere daha iyi eşya.
-      Eşya tuşu **E** (Boşluk drift'e ayrıldı)
-2. [ ] **Takım mekanikleri**: takım arkadaşının arkasında rüzgâr desteği, eşya pası
-3. [ ] **Birden fazla harita**: backend'de harita tanımları, lobide harita seçimi, temalar (kar, çöl, gece).
-      Turbo şeritleri haritaya özel olmalı (şu an `Track.BOOST_PAD_POINTS`)
-4. [ ] **Yayın**: Dockerfile ve Fly.io (Frankfurt), herkesin erişebileceği adres
-5. [ ] Yeniden bağlanma (sayfa yenilenince odaya geri dönme; şu an oyuncu odadan düşüyor)
-6. [ ] Ses efektleri ve müzik (motor, drift, turbo), dokunmatik ve mobil kontroller
+1. [ ] **Takım mekanikleri**: takım arkadaşının arkasında rüzgâr desteği, eşya pası
+2. [ ] **Birden fazla harita**: backend'de harita tanımları, lobide harita seçimi, temalar (kar, çöl, gece).
+      Turbo şeritleri ve kutu sıraları haritaya özel olmalı (şu an `Track.BOOST_PAD_POINTS`, `ItemSystem.BOX_ROW_POINTS`)
+3. [ ] **Yayın**: Dockerfile ve Fly.io (Frankfurt), herkesin erişebileceği adres
+4. [ ] Yeniden bağlanma (sayfa yenilenince odaya geri dönme; şu an oyuncu odadan düşüyor)
+5. [ ] Ses efektleri ve müzik (motor, drift, turbo), dokunmatik ve mobil kontroller
+6. [ ] Eşya fikirleri: üçlü turbo, sonuncuya yıldırım (herkesi yavaşlatır), eşya pası (takım)
 7. [ ] Yeni mini oyunlar (parti platformu fikri: Bomberman tarzı, futbol ve benzeri)

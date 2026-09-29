@@ -6,8 +6,9 @@ import { CarModel, WHEEL_RADIUS } from './car'
 import { DustEffect, SparkEffect } from './effects'
 import { Hud } from './hud'
 import { KeyboardInput } from './input'
+import { ItemVisuals } from './items'
 import { SkidMarks } from './skids'
-import type { CarState, RaceInit, RaceSnapshot } from './types'
+import type { CarState, ItemEvent, RaceInit, RaceSnapshot } from './types'
 import { buildWorld, type World } from './world'
 
 const INPUT_RESEND_MS = 200
@@ -24,7 +25,7 @@ const DUST_PER_SECOND = 40
 /** Drift'te her arka tekerlekten saniyede çıkan kıvılcım. */
 const SPARKS_PER_SECOND = 45
 /** Bu yana kayma hızının üstünde asfaltta iz kalır. */
-const SKID_SLIP = 55
+const SKID_SLIP = 85
 /** İki lastik izi arasındaki mesafe. */
 const SKID_SPACING = 5
 const FOV_NORMAL = 50
@@ -71,6 +72,7 @@ export class PistKaosu3D {
   private readonly dust: DustEffect
   private readonly sparks: SparkEffect
   private readonly skids: SkidMarks
+  private readonly items: ItemVisuals
 
   private snapshot: RaceSnapshot | null = null
   private cameraMode: CameraMode = 'follow'
@@ -98,6 +100,7 @@ export class PistKaosu3D {
     this.dust = new DustEffect(this.scene)
     this.sparks = new SparkEffect(this.scene)
     this.skids = new SkidMarks(this.scene)
+    this.items = new ItemVisuals(this.scene, this.race)
     const teamMode = start.mode === 'TEAMS'
     for (const p of this.race.players) {
       const labelColor = teamMode && p.team > 0 ? TEAM_COLORS[p.team] : '#ffffff'
@@ -117,6 +120,8 @@ export class PistKaosu3D {
 
     this.unsubscribe = client.on('state', (msg) => {
       this.snapshot = msg.state as RaceSnapshot
+      // Olaylar snapshot başına bir kez işlenir; çizim döngüsü aynı snapshot'ı birkaç kez kullanabilir.
+      this.handleEvents(this.snapshot.events)
     })
 
     this.resizeObserver = new ResizeObserver(() => this.resize())
@@ -136,6 +141,7 @@ export class PistKaosu3D {
     this.dust.dispose()
     this.sparks.dispose()
     this.skids.dispose()
+    this.items.dispose()
     this.scene.traverse((obj) => {
       if (obj instanceof THREE.Mesh) {
         obj.geometry.dispose()
@@ -162,6 +168,7 @@ export class PistKaosu3D {
     }
     this.dust.update(dt)
     this.sparks.update(dt)
+    this.items.update(now / 1000, dt, this.snapshot, (id) => this.carPosition(id))
     this.world.update(now / 1000, this.snapshot)
     this.placeCamera(1 - Math.exp(-CAMERA_SMOOTHING * dt))
     this.renderer.render(this.scene, this.camera)
@@ -221,6 +228,7 @@ export class PistKaosu3D {
       car.model.update({
         x: car.x, z: car.z, angle: car.a, wheelSpin: car.spin, steer: car.steer,
         roll: car.roll, pitch: car.pitch, braking: car.braking, boost: s.boost,
+        shield: s.shield, frozen: s.frozen, time: performance.now() / 1000,
       })
       car.model.setVisible(true)
     }
@@ -228,6 +236,21 @@ export class PistKaosu3D {
     for (const [id, car] of this.cars) {
       if (!seen.has(id)) car.model.setVisible(false)
     }
+  }
+
+  private handleEvents(events: ItemEvent[]) {
+    this.hud.onEvents(events)
+    for (const e of events) {
+      const from = this.carPosition(e.playerId)
+      if (e.type === 'use' && e.item === 'ICE' && e.other && from) {
+        this.items.launchIce(from, e.other)
+      }
+    }
+  }
+
+  private carPosition(id: string): THREE.Vector3 | null {
+    const car = this.cars.get(id)
+    return car?.placed ? new THREE.Vector3(car.x, 10, car.z) : null
   }
 
   /** Drift'te kıvılcım; drift, sert kayma ve frende asfaltta lastik izi. */

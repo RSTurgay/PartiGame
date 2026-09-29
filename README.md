@@ -6,7 +6,7 @@ Arkadaşlarla tarayıcıdan oynanan, çok oyunculu mini oyun platformu. Oda kur,
 
 3D, yüksek açılı kameralı yarış. 3 turu ilk bitiren kazanır.
 
-- **Kontroller:** Yön tuşları veya WASD · **Boşluk/Shift + yön** ile drift, bırakınca turbo · **C** ile kamera
+- **Kontroller:** Yön tuşları veya WASD · **Boşluk/Shift + yön** ile drift, bırakınca turbo · **E** eşya kullan · **C** ile kamera
 - **Modlar:** Herkes tek · 2'şer kişilik takımlar · Düello (1v1)
 - **Puanlar:** 10-7-5-3-2-1. Takım modunda takım arkadaşlarının puanları toplanır.
 - Çime çıkınca yavaşlarsın. Pistten kestirme yapmak işe yaramaz, kontrol noktaları sırayla geçilmeli.

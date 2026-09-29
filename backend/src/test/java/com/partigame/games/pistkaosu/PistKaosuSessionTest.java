@@ -68,7 +68,7 @@ class PistKaosuSessionTest {
 
     @Test
     void uzunDriftBirakilincaSuperTurboVerir() {
-        Car car = new Car(ID, 0, 0, 0);
+        Car car = new Car(ID, 0, 0, 0, 0);
         car.onTrack = true;
         car.driftHeld = true;
         car.right = true;
@@ -86,7 +86,7 @@ class PistKaosuSessionTest {
 
     @Test
     void kisaDriftTurboVermez() {
-        Car car = new Car(ID, 0, 0, 0);
+        Car car = new Car(ID, 0, 0, 0, 0);
         car.onTrack = true;
         car.driftHeld = true;
         car.left = true;
@@ -100,7 +100,7 @@ class PistKaosuSessionTest {
 
     @Test
     void cimeKacanDriftTurboKaybeder() {
-        Car car = new Car(ID, 0, 0, 0);
+        Car car = new Car(ID, 0, 0, 0, 0);
         car.onTrack = true;
         car.driftHeld = true;
         car.right = true;

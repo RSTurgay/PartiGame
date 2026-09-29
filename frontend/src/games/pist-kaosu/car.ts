@@ -17,6 +17,10 @@ export interface CarPose {
   pitch: number
   braking: boolean
   boost: boolean
+  shield: boolean
+  frozen: boolean
+  /** Saniye; kalkanın nabız animasyonu için. */
+  time: number
 }
 
 /** Low-poly araba. Yerel +x ileri yöndür; {@link CarModel.root} sunucu açısıyla döndürülür. */
@@ -28,6 +32,8 @@ export class CarModel {
   private readonly brakeLight: THREE.MeshStandardMaterial
   private readonly brakeGlow: THREE.Mesh
   private readonly flames: THREE.Group[] = []
+  private readonly shieldBubble: THREE.Mesh<THREE.SphereGeometry, THREE.MeshBasicMaterial>
+  private readonly iceBlock: THREE.Mesh
   private readonly label: THREE.Sprite
   private readonly disposables: { dispose(): void }[] = []
 
@@ -77,6 +83,40 @@ export class CarModel {
 
     this.addWheels()
     this.addExhaust(trim)
+
+    this.shieldBubble = new THREE.Mesh(
+      this.track(new THREE.SphereGeometry(32, 20, 14)),
+      this.track(
+        new THREE.MeshBasicMaterial({
+          color: 0x6fe3ff,
+          transparent: true,
+          opacity: 0.25,
+          blending: THREE.AdditiveBlending,
+          depthWrite: false,
+        }),
+      ),
+    )
+    this.shieldBubble.position.y = 10
+    this.shieldBubble.visible = false
+    this.root.add(this.shieldBubble)
+
+    this.iceBlock = new THREE.Mesh(
+      this.track(new THREE.BoxGeometry(50, 30, 34)),
+      this.track(
+        new THREE.MeshStandardMaterial({
+          color: 0xcff4ff,
+          transparent: true,
+          opacity: 0.55,
+          roughness: 0.05,
+          metalness: 0.1,
+          emissive: 0x3aa9d8,
+          emissiveIntensity: 0.25,
+        }),
+      ),
+    )
+    this.iceBlock.position.y = 14
+    this.iceBlock.visible = false
+    this.root.add(this.iceBlock)
 
     if (isMe) {
       const ring = new THREE.Mesh(
@@ -183,6 +223,13 @@ export class CarModel {
     for (const p of this.steerPivots) p.rotation.y = -pose.steer * MAX_STEER_ANGLE
     this.brakeLight.emissiveIntensity = pose.braking ? 3 : 0
     this.brakeGlow.visible = pose.braking
+    this.shieldBubble.visible = pose.shield
+    if (pose.shield) {
+      const pulse = 1 + Math.sin(pose.time * 6) * 0.04
+      this.shieldBubble.scale.setScalar(pulse)
+      this.shieldBubble.material.opacity = 0.2 + Math.sin(pose.time * 6) * 0.06
+    }
+    this.iceBlock.visible = pose.frozen
     for (const flame of this.flames) {
       flame.visible = pose.boost
       // Alevin boyu her karede biraz değişir, titreşir.

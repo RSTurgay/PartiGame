@@ -1,6 +1,10 @@
-import type { CarState, RaceInit, RaceSnapshot } from './types'
+import { ITEM_ICONS } from './items'
+import type { CarState, ItemEvent, ItemKind, RaceInit, RaceSnapshot } from './types'
 
 const MINIMAP_WIDTH = 220
+const FEED_SECONDS = 4
+const FEED_MAX = 4
+const ROULETTE: ItemKind[] = ['TURBO', 'BANANA', 'ICE', 'SHIELD']
 
 /** Oyun alanının üstündeki HTML göstergeler: tur, sıra, süre, sıralama, mesaj ve mini harita. */
 export class Hud {
@@ -11,6 +15,9 @@ export class Hud {
   private readonly center = el('div', 'pk-center')
   private readonly hint = el('div', 'pk-hint')
   private readonly drift = el('div', 'pk-drift')
+  private readonly itemSlot = el('div', 'pk-item')
+  private readonly itemIcon = el('span', 'pk-item-icon')
+  private readonly feed = el('div', 'pk-feed')
   private readonly minimap = document.createElement('canvas')
   private readonly race: RaceInit
   private readonly names: Map<string, { name: string; color: string }>
@@ -25,8 +32,13 @@ export class Hud {
     this.minimap.className = 'pk-minimap'
     this.minimap.width = MINIMAP_WIDTH * 2
     this.minimap.height = Math.round((MINIMAP_WIDTH * race.height) / race.width) * 2
-    this.hint.textContent = 'Boşluk + yön: drift · C: kamera'
-    this.root.append(this.lap, this.time, this.standings, this.center, this.drift, this.minimap, this.hint)
+    this.hint.textContent = 'Boşluk + yön: drift · E: eşya · C: kamera'
+    const key = el('span', 'pk-item-key')
+    key.textContent = 'E'
+    this.itemSlot.append(this.itemIcon, key)
+    this.root.append(
+      this.lap, this.time, this.standings, this.itemSlot, this.feed, this.center, this.drift, this.minimap, this.hint,
+    )
     parent.appendChild(this.root)
   }
 
@@ -38,11 +50,48 @@ export class Hud {
     this.center.textContent = centerMessage(snap, me)
     this.center.classList.toggle('big', snap.phase === 'COUNTDOWN' || (snap.time < 1 && !me?.boost))
     this.updateDrift(me)
+    this.updateItem(me)
     this.drawMinimap(snap.cars)
   }
 
   dispose() {
     this.root.remove()
+  }
+
+  /** Eşya kutusu: çark dönerken simgeler hızla değişir. */
+  private updateItem(me: CarState | undefined) {
+    let icon = ''
+    if (me?.rolling) {
+      icon = ITEM_ICONS[ROULETTE[Math.floor(performance.now() / 80) % ROULETTE.length]]
+    } else if (me?.item) {
+      icon = ITEM_ICONS[me.item]
+    }
+    if (this.itemIcon.textContent !== icon) this.itemIcon.textContent = icon
+    this.itemSlot.classList.toggle('rolling', !!me?.rolling)
+    this.itemSlot.classList.toggle('ready', !!me?.item && !me.rolling)
+  }
+
+  /** Eşya olaylarından kısa mesajlar: kim kimi dondurdu, kim kaydı. */
+  onEvents(events: ItemEvent[]) {
+    for (const e of events) {
+      const text = this.describe(e)
+      if (!text) continue
+      const line = el('div', 'pk-feed-line')
+      line.textContent = text
+      if (e.playerId === this.myId || e.other === this.myId) line.classList.add('me')
+      this.feed.prepend(line)
+      setTimeout(() => line.remove(), FEED_SECONDS * 1000)
+      while (this.feed.children.length > FEED_MAX) this.feed.lastChild?.remove()
+    }
+  }
+
+  private describe(e: ItemEvent) {
+    const name = (id: string | null) => (id ? (this.names.get(id)?.name ?? '?') : '?')
+    if (e.type === 'use' && e.item === 'ICE' && e.other) return `🧊 ${name(e.playerId)} → ${name(e.other)}`
+    if (e.type === 'hit' && e.item === 'BANANA') return `🍌 ${name(e.playerId)} kaydı!`
+    if (e.type === 'block') return `🛡️ ${name(e.playerId)} saldırıyı engelledi`
+    if (e.type === 'use' && e.item === 'SHIELD') return `🛡️ ${name(e.playerId)} kalkan açtı`
+    return null
   }
 
   /** Drift şarj göstergesi: şarjsız → mavi → turuncu. */
@@ -109,6 +158,8 @@ function centerMessage(snap: RaceSnapshot, me: CarState | undefined) {
     return snap.finishTimer >= 0 ? `${me.place}. oldun! · ${Math.ceil(snap.finishTimer)} sn` : `${me.place}. oldun!`
   }
   if (snap.finishTimer >= 0) return `Son ${Math.ceil(snap.finishTimer)} sn!`
+  if (me?.frozen) return '🧊 Dondun!'
+  if (me?.spin) return '🍌 Kaydın!'
   if (me?.boost) return '🔥 TURBO!'
   if (me && !me.onTrack) return 'Piste dön!'
   return ''

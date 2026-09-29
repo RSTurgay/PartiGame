@@ -448,6 +448,73 @@ label {
   box-shadow: 0 0 22px #ff9a2eaa;
 }
 
+.pk-item {
+  position: absolute;
+  top: 14px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 72px;
+  height: 72px;
+  border-radius: 16px;
+  background: #000a;
+  border: 3px solid #fff5;
+  display: grid;
+  place-items: center;
+}
+
+.pk-item.ready {
+  border-color: #ffd93d;
+  box-shadow: 0 0 20px #ffd93d88;
+}
+
+.pk-item.rolling {
+  border-color: #ff5a8a;
+}
+
+.pk-item-icon {
+  font-size: 38px;
+  line-height: 1;
+}
+
+.pk-item-key {
+  position: absolute;
+  right: -8px;
+  bottom: -8px;
+  background: #fff;
+  color: #111;
+  border-radius: 6px;
+  padding: 1px 7px;
+  font-size: 13px;
+  text-shadow: none;
+}
+
+.pk-feed {
+  position: absolute;
+  top: 66px;
+  left: 14px;
+  display: grid;
+  gap: 4px;
+  font-size: 14px;
+}
+
+.pk-feed-line {
+  background: #0008;
+  padding: 4px 10px;
+  border-radius: 8px;
+  animation: pk-feed-in 0.2s ease-out;
+}
+
+.pk-feed-line.me {
+  background: #5a1f3acc;
+}
+
+@keyframes pk-feed-in {
+  from {
+    opacity: 0;
+    transform: translateX(-10px);
+  }
+}
+
 .pk-minimap {
   position: absolute;
   left: 14px;

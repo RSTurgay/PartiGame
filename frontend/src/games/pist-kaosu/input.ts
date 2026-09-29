@@ -1,5 +1,5 @@
 const DRIVE_KEYS = new Set([
-  'KeyW', 'KeyA', 'KeyS', 'KeyD', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space', 'ShiftLeft', 'ShiftRight',
+  'KeyW', 'KeyA', 'KeyS', 'KeyD', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space', 'ShiftLeft', 'ShiftRight', 'KeyE',
 ])
 
 export interface DriveInput {
@@ -8,6 +8,7 @@ export interface DriveInput {
   left: boolean
   right: boolean
   drift: boolean
+  item: boolean
 }
 
 /** Pencere seviyesinde klavye takibi; sekme odağı kaybedilince tüm tuşlar bırakılır. */
@@ -45,6 +46,7 @@ export class KeyboardInput {
       left: p.has('KeyA') || p.has('ArrowLeft'),
       right: p.has('KeyD') || p.has('ArrowRight'),
       drift: p.has('Space') || p.has('ShiftLeft') || p.has('ShiftRight'),
+      item: p.has('KeyE'),
     }
   }
 

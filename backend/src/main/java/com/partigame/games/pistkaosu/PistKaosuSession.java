@@ -11,6 +11,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Random;
 
 final class PistKaosuSession implements GameSession {
 
@@ -45,7 +46,8 @@ final class PistKaosuSession implements GameSession {
     private static final double ROCKET_START_SECONDS = 1.0;
     /** Gaza son bu kadar saniye içinde basılmışsa roket start; daha erken basan kaçırır. */
     private static final double ROCKET_START_WINDOW = 0.8;
-    private static final double CAR_RADIUS = 18;
+    /** Muza basınca saniyedeki dönüş (radyan): ~2 tam tur. */
+    private static final double SPIN_RATE = 12;
     /** Kontrol noktası ararken bakılan pencere; kısa yoldan kesmeyi engeller. */
     private static final int SEARCH_WINDOW = 3;
     private static final int[] POINTS_BY_PLACE = {10, 7, 5, 3, 2, 1};
@@ -54,6 +56,7 @@ final class PistKaosuSession implements GameSession {
 
     private final Track track = Track.standard();
     private final List<Track.BoostPad> boostPads = track.boostPads();
+    private final ItemSystem items;
     private final List<PlayerInfo> players;
     private final Map<String, Car> cars = new LinkedHashMap<>();
     private Phase phase = Phase.COUNTDOWN;
@@ -64,7 +67,13 @@ final class PistKaosuSession implements GameSession {
     private double finishTimer;
 
     PistKaosuSession(GameContext context) {
+        this(context, new Random());
+    }
+
+    /** Testler için: eşya çarkı sabit tohumla. */
+    PistKaosuSession(GameContext context, Random random) {
         this.players = context.players();
+        this.items = new ItemSystem(track, random);
         placeOnGrid();
         rank();
     }
@@ -80,13 +89,15 @@ final class PistKaosuSession implements GameSession {
             double back = 45 + row * 55;
             double x = track.xs[0] - dirX * back + normX * side;
             double y = track.ys[0] - dirY * back + normY * side;
-            cars.put(players.get(i).id(), new Car(players.get(i).id(), x, y, heading));
+            PlayerInfo p = players.get(i);
+            cars.put(p.id(), new Car(p.id(), p.team(), x, y, heading));
         }
     }
 
     @Override
     public Object initData() {
-        return new Init(Track.WIDTH, Track.HEIGHT, Track.TRACK_WIDTH, LAPS, track.points(), boostPads, players);
+        return new Init(Track.WIDTH, Track.HEIGHT, Track.TRACK_WIDTH, LAPS, track.points(), boostPads,
+                items.boxPositions(), players);
     }
 
     @Override
@@ -100,6 +111,7 @@ final class PistKaosuSession implements GameSession {
         car.left = flag(input, "left");
         car.right = flag(input, "right");
         car.driftHeld = flag(input, "drift");
+        car.itemPressed = flag(input, "item");
     }
 
     private static boolean flag(Map<String, Object> input, String key) {
@@ -152,9 +164,12 @@ final class PistKaosuSession implements GameSession {
                 car.speed *= decay;
                 car.drifting = false;
                 car.boost = 0;
+                car.spinTimer = 0;
+                car.frozenTimer = 0;
                 move(car, dt);
             }
         }
+        items.update(cars.values(), dt);
         resolveCollisions();
         rank();
 
@@ -174,6 +189,10 @@ final class PistKaosuSession implements GameSession {
      */
     private void drive(Car car, double dt) {
         car.onTrack = distanceToTrack(car) <= Track.TRACK_WIDTH / 2 + Track.CURB_WIDTH;
+        if (car.disabled()) {
+            driveDisabled(car, dt);
+            return;
+        }
         car.boost = Math.max(0, car.boost - dt);
         for (Track.BoostPad pad : boostPads) {
             if (pad.contains(car.x, car.y)) {
@@ -223,6 +242,27 @@ final class PistKaosuSession implements GameSession {
         move(car, dt);
     }
 
+    /** Muza basan araba kendi etrafında döner, donan araba kayarak durur; ikisinde de kontrol yoktur. */
+    private void driveDisabled(Car car, double dt) {
+        car.drifting = false;
+        car.driftTime = 0;
+        double damping;
+        if (car.spinTimer > 0) {
+            car.spinTimer = Math.max(0, car.spinTimer - dt);
+            car.angle += SPIN_RATE * dt;
+            damping = 2.2;
+        } else {
+            car.frozenTimer = Math.max(0, car.frozenTimer - dt);
+            damping = 4;
+        }
+        double decay = Math.exp(-damping * dt);
+        car.vx *= decay;
+        car.vy *= decay;
+        car.speed = Math.hypot(car.vx, car.vy);
+        car.slip = 0;
+        move(car, dt);
+    }
+
     /** Boşluk + yön ile drift başlar; bırakınca süresine göre turbo verir. */
     static void updateDrift(Car car, double forward, double dt) {
         if (!car.drifting) {
@@ -249,8 +289,8 @@ final class PistKaosuSession implements GameSession {
     private void move(Car car, double dt) {
         car.x += car.vx * dt;
         car.y += car.vy * dt;
-        double clampedX = Math.max(CAR_RADIUS, Math.min(Track.WIDTH - CAR_RADIUS, car.x));
-        double clampedY = Math.max(CAR_RADIUS, Math.min(Track.HEIGHT - CAR_RADIUS, car.y));
+        double clampedX = Math.max(Car.RADIUS, Math.min(Track.WIDTH - Car.RADIUS, car.x));
+        double clampedY = Math.max(Car.RADIUS, Math.min(Track.HEIGHT - Car.RADIUS, car.y));
         if (clampedX != car.x || clampedY != car.y) {
             car.vx *= 0.3;
             car.vy *= 0.3;
@@ -311,7 +351,7 @@ final class PistKaosuSession implements GameSession {
                 Car a = list.get(i), b = list.get(j);
                 double dx = b.x - a.x, dy = b.y - a.y;
                 double dist = Math.hypot(dx, dy);
-                double minDist = CAR_RADIUS * 2;
+                double minDist = Car.RADIUS * 2;
                 if (dist >= minDist || dist == 0) {
                     continue;
                 }
@@ -355,10 +395,12 @@ final class PistKaosuSession implements GameSession {
             int steer = c.finished ? 0 : c.drifting ? c.driftDirection : c.steerInput();
             int drift = c.drifting ? c.driftLevel() + 1 : 0;
             views.add(new CarView(c.playerId, round(c.x), round(c.y), round(c.angle), round(c.speed),
-                    round(c.slip), steer, drift, c.boost > 0, lap, c.place, c.finished, c.onTrack));
+                    round(c.slip), steer, drift, c.boost > 0, lap, c.place, c.finished, c.onTrack,
+                    c.item, c.rollTimer > 0, c.spinTimer > 0, c.frozenTimer > 0, c.shieldTimer > 0));
         }
         return new Snapshot(phase.name(), round(Math.max(0, countdown)), round(raceTime),
-                graceStarted ? round(Math.max(0, finishTimer)) : -1, views);
+                graceStarted ? round(Math.max(0, finishTimer)) : -1, views,
+                items.boxStates(), items.bananaPositions(), items.drainEvents());
     }
 
     private static double round(double v) {
@@ -391,10 +433,15 @@ final class PistKaosuSession implements GameSession {
     }
 
     record Init(int width, int height, double trackWidth, int laps, List<int[]> points,
-                List<Track.BoostPad> boostPads, List<PlayerInfo> players) {
+                List<Track.BoostPad> boostPads, List<double[]> itemBoxes, List<PlayerInfo> players) {
     }
 
-    record Snapshot(String phase, double countdown, double time, double finishTimer, List<CarView> cars) {
+    /**
+     * {@code boxes}: kutuların yerinde olup olmadığı (init.itemBoxes ile aynı sırada).
+     * {@code events}: bu tick'te olan eşya olayları; snapshot her tick bir kez alınır, olaylar sonra silinir.
+     */
+    record Snapshot(String phase, double countdown, double time, double finishTimer, List<CarView> cars,
+                    List<Boolean> boxes, List<double[]> bananas, List<ItemSystem.ItemEvent> events) {
     }
 
     /**
@@ -402,6 +449,7 @@ final class PistKaosuSession implements GameSession {
      * {@code drift}: 0 yok, 1 drift (şarj yok), 2 mavi, 3 turuncu turbo şarjı.
      */
     record CarView(String id, double x, double y, double a, double speed, double slip, int steer, int drift,
-                   boolean boost, int lap, int place, boolean finished, boolean onTrack) {
+                   boolean boost, int lap, int place, boolean finished, boolean onTrack,
+                   Item item, boolean rolling, boolean spin, boolean frozen, boolean shield) {
     }
 }

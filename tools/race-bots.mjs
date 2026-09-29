@@ -4,13 +4,19 @@ const URL = 'ws://localhost:8080/ws'
 
 function bot(name) {
   const ws = new WebSocket(URL)
-  const b = { name, ws, msgs: [], id: null, room: null, init: null, state: null, errors: [] }
+  const b = { name, ws, msgs: [], id: null, room: null, init: null, state: null, errors: [], events: {}, tick: 0 }
   ws.onmessage = (e) => {
     const m = JSON.parse(e.data)
     if (m.type === 'joined') b.id = m.playerId
     if (m.type === 'room') b.room = m.room
     if (m.type === 'gameStart') b.init = m.init
-    if (m.type === 'state') b.state = m.state
+    if (m.type === 'state') {
+      b.state = m.state
+      for (const e of m.state.events ?? []) {
+        const key = `${e.type}${e.item ? ':' + e.item : ''}`
+        b.events[key] = (b.events[key] ?? 0) + 1
+      }
+    }
     if (m.type === 'gameEnd') b.results = m.results
     if (m.type === 'error') b.errors.push(m.message)
   }
@@ -36,7 +42,9 @@ function drive(b, lookahead, throttleBias) {
   let diff = Math.atan2(ty - me.y, tx - me.x) - me.a
   diff = Math.atan2(Math.sin(diff), Math.cos(diff))
   const sharp = Math.abs(diff) > 0.5
-  b.send({ type: 'input', input: {
+  // Eşya varsa kullan; tuş basıp bırakma gibi olsun diye bir tick basılı, bir tick bırakılmış.
+  const item = !!me.item && b.tick++ % 2 === 0
+  b.send({ type: 'input', input: { item,
     up: !sharp || me.speed < 150 * throttleBias, down: sharp && me.speed > 260,
     left: diff < -0.08, right: diff > 0.08 } })
 }
@@ -74,6 +82,7 @@ while (!a.results && Date.now() - t0 < 120000) {
 console.log('sonuç:', JSON.stringify(a.results))
 console.log('parti puanı:', a.room.players.map((p) => `${p.name}=${p.score}`).join(', '), 'faz:', a.room.phase)
 console.log('hatalar Can:', c.errors, 'Ayşe:', a.errors)
+console.log('eşya olayları:', JSON.stringify(a.events))
 a.send({ type: 'lobby' })
 await sleep(200)
 console.log('lobiye dönüş:', a.room.phase)
