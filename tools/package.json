@@ -1,0 +1,12 @@
+{
+  "name": "partigame-tools",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "bots": "node race-bots.mjs",
+    "browser": "node browser-test.mjs"
+  },
+  "devDependencies": {
+    "puppeteer-core": "^24.0.0"
+  }
+}

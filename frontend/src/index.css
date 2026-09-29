@@ -1,0 +1,454 @@
+:root {
+  --bg: #14151f;
+  --card: #1f2130;
+  --card-border: #2e3146;
+  --text: #f1f2f8;
+  --muted: #9a9db5;
+  --accent: #ff5a8a;
+  --accent-2: #ffb13d;
+  --radius: 14px;
+  font-family: system-ui, 'Segoe UI', Roboto, sans-serif;
+  color: var(--text);
+  background: var(--bg);
+  color-scheme: dark;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: radial-gradient(circle at 20% 0%, #2a1f3d 0%, var(--bg) 55%);
+}
+
+.app {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 20px;
+}
+
+.logo {
+  font-weight: 800;
+  font-size: 20px;
+}
+
+.room-chip {
+  background: var(--card);
+  border: 1px solid var(--card-border);
+  padding: 4px 12px;
+  border-radius: 999px;
+  font-weight: 700;
+  letter-spacing: 1px;
+}
+
+main {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  padding: 16px;
+}
+
+h1 {
+  margin: 0 0 6px;
+  font-size: 40px;
+  background: linear-gradient(90deg, var(--accent), var(--accent-2));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+h2 {
+  font-size: 16px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--muted);
+  margin: 22px 0 10px;
+}
+
+.muted {
+  color: var(--muted);
+}
+
+.card {
+  background: var(--card);
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius);
+  padding: 24px;
+  width: 100%;
+}
+
+.center {
+  max-width: 420px;
+  text-align: center;
+  align-self: center;
+}
+
+button {
+  font: inherit;
+  font-weight: 600;
+  color: var(--text);
+  background: #2c2f44;
+  border: 1px solid var(--card-border);
+  border-radius: 10px;
+  padding: 10px 16px;
+  cursor: pointer;
+  transition: transform 0.08s, background 0.15s;
+}
+
+button:hover:not(:disabled) {
+  background: #373b55;
+}
+
+button:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+button:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+
+button.primary {
+  background: linear-gradient(90deg, var(--accent), var(--accent-2));
+  border: none;
+  color: #1a1020;
+}
+
+button.small {
+  padding: 4px 10px;
+  font-size: 13px;
+}
+
+input {
+  font: inherit;
+  color: var(--text);
+  background: #161826;
+  border: 1px solid var(--card-border);
+  border-radius: 10px;
+  padding: 10px 12px;
+  width: 100%;
+}
+
+input:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+label {
+  display: grid;
+  gap: 6px;
+  margin-top: 20px;
+  font-weight: 600;
+}
+
+/* Giriş */
+.home {
+  max-width: 440px;
+  align-self: center;
+}
+
+.home-actions {
+  display: grid;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.join-row {
+  display: flex;
+  gap: 8px;
+}
+
+.code-input {
+  width: 110px;
+  text-align: center;
+  letter-spacing: 4px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.join-row button {
+  flex: 1;
+}
+
+.or {
+  text-align: center;
+  font-size: 13px;
+}
+
+/* Lobi */
+.lobby {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 16px;
+  width: 100%;
+  max-width: 980px;
+  align-content: start;
+}
+
+.lobby-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.big-code {
+  font-size: 44px;
+  font-weight: 800;
+  letter-spacing: 6px;
+}
+
+.players {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.players li {
+  display: flex;
+  justify-content: space-between;
+  padding: 10px 12px;
+  background: #181a28;
+  border-radius: 10px;
+}
+
+.player-name {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+}
+
+.dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  display: inline-block;
+  box-shadow: 0 0 0 2px #0006;
+}
+
+.teams {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.team {
+  border: 2px solid;
+  border-radius: 10px;
+  padding: 10px;
+  display: grid;
+  gap: 6px;
+  align-content: start;
+  min-height: 96px;
+}
+
+.team-title {
+  font-weight: 800;
+}
+
+.game-list {
+  display: grid;
+  gap: 8px;
+}
+
+.game-card {
+  display: grid;
+  gap: 4px;
+  text-align: left;
+  padding: 14px;
+}
+
+.game-card.selected,
+.chip.selected {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent);
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.chip {
+  border-radius: 999px;
+  padding: 6px 14px;
+}
+
+.lobby-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-top: 24px;
+  flex-wrap: wrap;
+}
+
+/* Sonuçlar */
+.results {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.results li {
+  display: grid;
+  grid-template-columns: 36px 1fr auto auto;
+  gap: 12px;
+  align-items: center;
+  padding: 10px 12px;
+  background: #181a28;
+  border-radius: 10px;
+}
+
+.results li.me {
+  outline: 1px solid var(--accent);
+}
+
+.place {
+  font-size: 22px;
+  text-align: center;
+}
+
+.team-results {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.team-result {
+  display: flex;
+  justify-content: space-between;
+  border: 2px solid;
+  border-radius: 10px;
+  padding: 10px 12px;
+}
+
+/* Oyun */
+.game-view {
+  width: 100%;
+  max-width: 1400px;
+  aspect-ratio: 16 / 9;
+  max-height: calc(100vh - 100px);
+  border-radius: var(--radius);
+  overflow: hidden;
+  position: relative;
+  background: #a8dcff;
+}
+
+/* Pist Kaosu göstergeleri */
+.pk-canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.pk-hud {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  font-weight: 800;
+  color: #fff;
+  text-shadow: 0 2px 4px #000a, 0 0 2px #000;
+}
+
+.pk-lap,
+.pk-time {
+  position: absolute;
+  top: 14px;
+  font-size: clamp(16px, 2.2vw, 26px);
+  background: #0008;
+  padding: 6px 14px;
+  border-radius: 10px;
+}
+
+.pk-lap {
+  left: 14px;
+}
+
+.pk-time {
+  right: 14px;
+  font-variant-numeric: tabular-nums;
+}
+
+.pk-standings {
+  position: absolute;
+  top: 62px;
+  right: 14px;
+  margin: 0;
+  padding: 8px 12px 8px 30px;
+  background: #0006;
+  border-radius: 10px;
+  font-size: 14px;
+  display: grid;
+  gap: 3px;
+}
+
+.pk-standings li.me {
+  color: #ffe27a;
+}
+
+.pk-standings .dot {
+  width: 9px;
+  height: 9px;
+  margin-right: 6px;
+}
+
+.pk-center {
+  position: absolute;
+  top: 38%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: clamp(24px, 4vw, 48px);
+  white-space: nowrap;
+}
+
+.pk-center.big {
+  font-size: clamp(56px, 10vw, 120px);
+}
+
+.pk-minimap {
+  position: absolute;
+  left: 14px;
+  bottom: 14px;
+  width: 220px;
+  max-width: 30%;
+  background: #2d6b35cc;
+  border: 2px solid #fff8;
+  border-radius: 10px;
+}
+
+.pk-hint {
+  position: absolute;
+  right: 14px;
+  bottom: 12px;
+  font-size: 13px;
+  opacity: 0.85;
+}
+
+.toast {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #3a1d2a;
+  border: 1px solid var(--accent);
+  padding: 12px 18px;
+  border-radius: 10px;
+  max-width: calc(100vw - 32px);
+}
