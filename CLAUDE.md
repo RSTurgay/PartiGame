@@ -12,7 +12,7 @@ Sahibi: Turgay (GitHub: RSTurgay). Konuşma dili Türkçe; kod yorumları da Tü
 | Frontend | React 19, TypeScript, Vite | `erasableSyntaxOnly`: enum ve parametre property kullanılmaz |
 | 3D | **Three.js** | Pist Kaosu için. Phaser kaldırıldı; 2D oyun gerekirse tekrar eklenebilir |
 | Mesaj formatı | JSON | İleride gerekirse binary |
-| Yayın (plan) | Fly.io, Frankfurt | Tek imaj: Spring Boot, derlenmiş frontend'i de sunar |
+| Yayın | **Render.com** (ücretsiz, Frankfurt), `render.yaml` + `Dockerfile` | Tek imaj: Spring Boot, derlenmiş frontend'i de sunar. `main`'e her push otomatik yayınlanır |
 
 Makinede JDK 23 kurulu (Java 21 hedefiyle derliyor), Node 22.
 
@@ -26,6 +26,14 @@ cd frontend && npm run dev
 # Tek port: build çıktısı backend/src/main/resources/static'e yazılır (git'te yok sayılır)
 cd frontend && npm run build
 ```
+
+Canlı ortamı yerelde denemek (Docker kapalıysa): `npm run build`, sonra `mvnw.cmd -DskipTests package`, sonra
+`PORT=8081 java -jar target/partigame-backend-*.jar`, ardından `SERVER_URL=ws://localhost:8081/ws node tools/race-bots.mjs`.
+
+### Yayın notları
+- Odalar sunucu belleğinde tutulur, bu yüzden **tek kopya** çalışmalı (Render ücretsiz planı tek kopyadır; ölçeklenirse odalar bölünür).
+- Render ücretsiz plan 15 dk trafik olmazsa uyur; ilk giriş ~1 dk sürer. Uyuyunca açık odalar silinir.
+- Port `PORT` ortam değişkeninden okunur (`application.properties`). JVM 512 MB'a göre sınırlandı (`Dockerfile` JAVA_OPTS).
 
 Kontroller: `npx tsc -b` ve `npx oxlint src` (frontend), `mvnw.cmd test` (backend).
 Paket ekleyip çıkardıktan sonra Vite'i yeniden başlat; gerekirse `node_modules/.vite` klasörünü sil.
@@ -129,13 +137,13 @@ frontend/src/
       egzoz alevi, turboda kamera efekti, drift göstergesi
 - [x] Sürpriz kutuları: dönen gökkuşağı kutular, çark, turbo/muz/buz/kalkan, uçan buz parçası, buz bloğu,
       kalkan balonu, HUD eşya yuvası ve olay akışı ("🧊 Ayşe → Can")
+- [x] Yayın hazırlığı: Dockerfile (çok aşamalı), render.yaml, PORT ayarı
 
 ## Yol haritası (sıradaki önce)
 1. [ ] **Takım mekanikleri**: takım arkadaşının arkasında rüzgâr desteği, eşya pası
 2. [ ] **Birden fazla harita**: backend'de harita tanımları, lobide harita seçimi, temalar (kar, çöl, gece).
       Turbo şeritleri ve kutu sıraları haritaya özel olmalı (şu an `Track.BOOST_PAD_POINTS`, `ItemSystem.BOX_ROW_POINTS`)
-3. [ ] **Yayın**: Dockerfile ve Fly.io (Frankfurt), herkesin erişebileceği adres
-4. [ ] Yeniden bağlanma (sayfa yenilenince odaya geri dönme; şu an oyuncu odadan düşüyor)
-5. [ ] Ses efektleri ve müzik (motor, drift, turbo), dokunmatik ve mobil kontroller
-6. [ ] Eşya fikirleri: üçlü turbo, sonuncuya yıldırım (herkesi yavaşlatır), eşya pası (takım)
-7. [ ] Yeni mini oyunlar (parti platformu fikri: Bomberman tarzı, futbol ve benzeri)
+3. [ ] Yeniden bağlanma (sayfa yenilenince odaya geri dönme; şu an oyuncu odadan düşüyor)
+4. [ ] Ses efektleri ve müzik (motor, drift, turbo), dokunmatik ve mobil kontroller
+5. [ ] Eşya fikirleri: üçlü turbo, sonuncuya yıldırım (herkesi yavaşlatır), eşya pası (takım)
+6. [ ] Yeni mini oyunlar (parti platformu fikri: Bomberman tarzı, futbol ve benzeri)

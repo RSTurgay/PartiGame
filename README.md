@@ -50,6 +50,15 @@ cd frontend && npm run build               # çıktıyı backend/src/main/resour
 cd backend && ./mvnw spring-boot:run       # → http://<bilgisayarın-ip'si>:8080
 ```
 
+## Canlıya alma (Render.com, ücretsiz)
+
+1. [render.com](https://render.com)'a GitHub hesabınla giriş yap.
+2. **New → Blueprint** seç, `PartiGame` reposunu bağla. `render.yaml` otomatik okunur, **Apply**'a bas.
+3. İlk derleme ~5-10 dk sürer. Sonra `https://partigame-xxxx.onrender.com` gibi bir adres verilir. Linki arkadaşlarına gönder.
+4. `main` dalına her push'ta oyun kendiliğinden yeniden yayınlanır.
+
+Not: Ücretsiz planda 15 dk kimse girmezse sunucu uyur, ilk giren ~1 dk bekler.
+
 ## Yeni mini oyun eklemek
 
 1. **Backend:** `games/<oyun>/` altında `GameModule` implementasyonu (`@Component`) ve `GameSession` yaz.

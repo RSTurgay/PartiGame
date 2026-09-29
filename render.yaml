@@ -1,0 +1,10 @@
+# Render.com Blueprint: GitHub'daki main dalına her push'ta otomatik yeniden yayınlar.
+services:
+  - type: web
+    name: partigame
+    runtime: docker
+    plan: free
+    region: frankfurt
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /
+    autoDeploy: true

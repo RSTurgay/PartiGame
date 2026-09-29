@@ -1,6 +1,6 @@
 // Uçtan uca sunucu testi: iki bot oda kurar/katılır, takım modunda yarışı kendi kendine tamamlar.
 // Kullanım: node tools/race-bots.mjs (backend :8080'de çalışıyor olmalı, Node 22+)
-const URL = 'ws://localhost:8080/ws'
+const URL = process.env.SERVER_URL ?? 'ws://localhost:8080/ws'
 
 function bot(name) {
   const ws = new WebSocket(URL)
