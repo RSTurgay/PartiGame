@@ -35,6 +35,7 @@ export class CarModel {
   private readonly shieldBubble: THREE.Mesh<THREE.SphereGeometry, THREE.MeshBasicMaterial>
   private readonly iceBlock: THREE.Mesh
   private readonly label: THREE.Sprite
+  private labelEnabled = true
   private readonly disposables: { dispose(): void }[] = []
 
   constructor(color: string, name: string, labelColor: string, isMe: boolean) {
@@ -240,7 +241,13 @@ export class CarModel {
 
   setVisible(visible: boolean) {
     this.root.visible = visible
-    this.label.visible = visible
+    this.label.visible = visible && this.labelEnabled
+  }
+
+  /** İsim etiketini kapatır/açar (arkadan kamerada kendi etiketin görüşü kapatmasın). */
+  setLabelEnabled(enabled: boolean) {
+    this.labelEnabled = enabled
+    this.label.visible = enabled && this.root.visible
   }
 
   dispose() {

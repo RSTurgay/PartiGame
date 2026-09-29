@@ -15,8 +15,17 @@ const INPUT_RESEND_MS = 200
 /** Sunucu durumuna yaklaşma hızı; büyüdükçe keskin, küçüldükçe yumuşak. */
 const SMOOTHING = 18
 const CAMERA_SMOOTHING = 4
-/** Takip kamerasının arabaya göre konumu: yukarıda ve biraz güneyde, yüksek açı. */
+/** Yüksek açılı kameranın arabaya göre konumu: yukarıda ve biraz güneyde. */
 const FOLLOW_OFFSET = new THREE.Vector3(0, 360, 270)
+/** Arkadan kamera: arabanın ne kadar gerisinde ve üstünde durduğu, ne kadar önüne baktığı. */
+const CHASE_DISTANCE = 95
+const CHASE_HEIGHT = 48
+const CHASE_LOOK_AHEAD = 80
+/** Arkadan kamera arabaya daha sıkı bağlıdır; yoksa yüksek hızda geride kalır. */
+const CHASE_SMOOTHING = 12
+/** Kameranın arabanın yönüne dönme hızı; drift'te arabayı biraz yandan görmek için yumuşak. */
+const CHASE_TURN_SMOOTHING = 5
+const CAMERA_STORAGE_KEY = 'partigame.camera'
 const MAX_SPEED = 340
 /** Bu yavaşlamanın (birim/sn²) üstünde stop lambaları yanar. */
 const BRAKE_DECELERATION = 250
@@ -28,8 +37,12 @@ const SPARKS_PER_SECOND = 45
 const SKID_SLIP = 85
 /** İki lastik izi arasındaki mesafe. */
 const SKID_SPACING = 5
-const FOV_NORMAL = 50
-const FOV_BOOST = 64
+/** Görüş açısı (normal, turbo) moda göre; arkadan kamerada daha geniş. */
+const FOV: Record<CameraMode, [number, number]> = {
+  high: [50, 64],
+  chase: [70, 84],
+  overview: [50, 50],
+}
 /** Arka tekerleklerin araba merkezine göre yeri (yerel x geri, z yan). */
 const REAR_WHEELS: [number, number][] = [
   [-13, 12],
@@ -55,7 +68,31 @@ interface CarView {
   lastSkidZ: number
 }
 
-type CameraMode = 'follow' | 'overview'
+type CameraMode = 'high' | 'chase' | 'overview'
+/** C tuşu bu sırayla dolaşır. */
+const CAMERA_MODES: CameraMode[] = ['high', 'chase', 'overview']
+const CAMERA_LABELS: Record<CameraMode, string> = {
+  high: 'Yüksek açı',
+  chase: 'Arkadan',
+  overview: 'Tüm pist',
+}
+
+function loadCameraMode(): CameraMode {
+  try {
+    const saved = localStorage.getItem(CAMERA_STORAGE_KEY) as CameraMode | null
+    return saved && CAMERA_MODES.includes(saved) ? saved : 'high'
+  } catch {
+    return 'high'
+  }
+}
+
+function saveCameraMode(mode: CameraMode) {
+  try {
+    localStorage.setItem(CAMERA_STORAGE_KEY, mode)
+  } catch {
+    // Depolama engelliyse seçim sadece bu yarış için geçerli olur.
+  }
+}
 
 export class PistKaosu3D {
   private readonly renderer = new THREE.WebGLRenderer({ antialias: true })
@@ -75,7 +112,9 @@ export class PistKaosu3D {
   private readonly items: ItemVisuals
 
   private snapshot: RaceSnapshot | null = null
-  private cameraMode: CameraMode = 'follow'
+  private cameraMode: CameraMode = loadCameraMode()
+  /** Arkadan kameranın baktığı yön (yumuşatılmış). */
+  private chaseYaw = 0
   private frame = 0
   private lastFrame = performance.now()
   private lastInput = ''
@@ -115,7 +154,8 @@ export class PistKaosu3D {
 
     this.hud = new Hud(parent, this.race, this.myId)
     this.input.onPress('KeyC', () => {
-      this.cameraMode = this.cameraMode === 'follow' ? 'overview' : 'follow'
+      const next = CAMERA_MODES[(CAMERA_MODES.indexOf(this.cameraMode) + 1) % CAMERA_MODES.length]
+      this.setCameraMode(next)
     })
 
     this.unsubscribe = client.on('state', (msg) => {
@@ -127,7 +167,8 @@ export class PistKaosu3D {
     this.resizeObserver = new ResizeObserver(() => this.resize())
     this.resizeObserver.observe(parent)
     this.resize()
-    this.placeCamera(1)
+    this.setCameraMode(this.cameraMode)
+    this.placeCamera(0, true)
     this.frame = requestAnimationFrame(this.loop)
   }
 
@@ -170,7 +211,7 @@ export class PistKaosu3D {
     this.sparks.update(dt)
     this.items.update(now / 1000, dt, this.snapshot, (id) => this.carPosition(id))
     this.world.update(now / 1000, this.snapshot)
-    this.placeCamera(1 - Math.exp(-CAMERA_SMOOTHING * dt))
+    this.placeCamera(dt, false)
     this.renderer.render(this.scene, this.camera)
   }
 
@@ -289,14 +330,36 @@ export class PistKaosu3D {
     }
   }
 
-  /** @param blend 0-1 arası; 1 kamerayı doğrudan hedefe koyar. */
-  private placeCamera(blend: number) {
+  private setCameraMode(mode: CameraMode) {
+    this.cameraMode = mode
+    saveCameraMode(mode)
+    // Arkadan kamerada kendi ismin görüşü kapatmasın.
+    this.cars.get(this.myId)?.model.setLabelEnabled(mode !== 'chase')
+    const me = this.cars.get(this.myId)
+    if (me?.placed) this.chaseYaw = me.a
+    this.hud.setCameraLabel(CAMERA_LABELS[mode])
+  }
+
+  /** @param snap true ise kamera yumuşatmadan doğrudan hedefe konur. */
+  private placeCamera(dt: number, snap: boolean) {
     const target = new THREE.Vector3()
     const desired = new THREE.Vector3()
     const me = this.cars.get(this.myId)
     const mine = this.snapshot?.cars.find((c) => c.id === this.myId)
+    const following = this.cameraMode !== 'overview' && !!me?.placed
+    let smoothing = CAMERA_SMOOTHING
 
-    if (this.cameraMode === 'follow' && me?.placed) {
+    if (this.cameraMode === 'chase' && me?.placed) {
+      // Muza basıp dönerken kamera arabayla birlikte dönmesin.
+      if (!mine?.spin) {
+        this.chaseYaw += wrapAngle(me.a - this.chaseYaw) * (snap ? 1 : 1 - Math.exp(-CHASE_TURN_SMOOTHING * dt))
+      }
+      const dx = Math.cos(this.chaseYaw)
+      const dz = Math.sin(this.chaseYaw)
+      target.set(me.x + dx * CHASE_LOOK_AHEAD, 12, me.z + dz * CHASE_LOOK_AHEAD)
+      desired.set(me.x - dx * CHASE_DISTANCE, CHASE_HEIGHT, me.z - dz * CHASE_DISTANCE)
+      smoothing = CHASE_SMOOTHING
+    } else if (this.cameraMode === 'high' && me?.placed) {
       // Gidiş yönüne biraz önden bak; hızlandıkça daha önden.
       const lead = 90 * ((mine?.speed ?? 0) / MAX_SPEED)
       target.set(me.x + Math.cos(me.a) * lead, 0, me.z + Math.sin(me.a) * lead)
@@ -305,9 +368,10 @@ export class PistKaosu3D {
       target.set(this.race.width / 2, 0, this.race.height / 2)
       desired.set(this.race.width / 2, 1250, this.race.height / 2 + 800)
     }
+    const blend = snap ? 1 : 1 - Math.exp(-smoothing * dt)
     this.cameraFocus.lerp(target, blend)
     this.camera.position.lerp(desired, blend)
-    if (mine?.boost && this.cameraMode === 'follow') {
+    if (mine?.boost && following) {
       // Turboda hafif sarsıntı; yumuşatmadan sonra eklenir ki sönmesin.
       this.camera.position.x += (Math.random() - 0.5) * 3
       this.camera.position.y += (Math.random() - 0.5) * 3
@@ -315,9 +379,10 @@ export class PistKaosu3D {
     this.camera.lookAt(this.cameraFocus)
 
     // Turboda görüş açısı genişler: hız hissi.
-    const fov = mine?.boost && this.cameraMode === 'follow' ? FOV_BOOST : FOV_NORMAL
+    const [normalFov, boostFov] = FOV[this.cameraMode]
+    const fov = mine?.boost && following ? boostFov : normalFov
     if (Math.abs(this.camera.fov - fov) > 0.05) {
-      this.camera.fov += (fov - this.camera.fov) * Math.min(1, blend * 1.5)
+      this.camera.fov += (fov - this.camera.fov) * (snap ? 1 : Math.min(1, (1 - Math.exp(-CAMERA_SMOOTHING * dt)) * 1.5))
       this.camera.updateProjectionMatrix()
     }
   }

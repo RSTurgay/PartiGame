@@ -18,6 +18,7 @@ export class Hud {
   private readonly itemSlot = el('div', 'pk-item')
   private readonly itemIcon = el('span', 'pk-item-icon')
   private readonly feed = el('div', 'pk-feed')
+  private readonly cameraFlash = el('div', 'pk-camera-flash')
   private readonly minimap = document.createElement('canvas')
   private readonly race: RaceInit
   private readonly names: Map<string, { name: string; color: string }>
@@ -38,6 +39,7 @@ export class Hud {
     this.itemSlot.append(this.itemIcon, key)
     this.root.append(
       this.lap, this.time, this.standings, this.itemSlot, this.feed, this.center, this.drift, this.minimap, this.hint,
+      this.cameraFlash,
     )
     parent.appendChild(this.root)
   }
@@ -52,6 +54,15 @@ export class Hud {
     this.updateDrift(me)
     this.updateItem(me)
     this.drawMinimap(snap.cars)
+  }
+
+  /** Kamera değişince köşedeki ipucunu günceller ve adını kısa süre ortada gösterir. */
+  setCameraLabel(label: string) {
+    this.hint.textContent = `Boşluk + yön: drift · E: eşya · C: kamera (${label})`
+    this.cameraFlash.textContent = `🎥 ${label}`
+    this.cameraFlash.classList.remove('show')
+    // Animasyonu yeniden başlatmak için bir kare bekle.
+    requestAnimationFrame(() => this.cameraFlash.classList.add('show'))
   }
 
   dispose() {

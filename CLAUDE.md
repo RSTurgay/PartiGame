@@ -86,7 +86,9 @@ frontend/src/
 - Puan: 10-7-5-3-2-1. Takım modunda istemci takım toplamını hesaplar.
 - Görsel süsler istemcide sunucu durumundan türetilir: tekerlek dönüşü, direksiyon (`steer` sunucudan gelir),
   virajda yatma, fren lambası (yavaşlamadan çıkarılır), çimde toz.
-- Kamera: yüksek açılı takip (`FOLLOW_OFFSET`); **C** tuşu tüm pist görünümüne geçirir. Turboda FOV genişler, kamera titrer.
+- Kamera: **C** tuşu sırayla yüksek açı (`FOLLOW_OFFSET`), arkadan (`CHASE_*`; arabanın yönünü yumuşakça takip eder,
+  muzda dönerken dönmez, kendi isim etiketi gizlenir) ve tüm pist arasında geçer. Seçim `localStorage`'da
+  (`partigame.camera`) hatırlanır. Turboda FOV genişler (moda göre `FOV`), kamera titrer.
 - **Fizik:** Arabanın hız vektörü (`vx, vy`) burun yönünden bağımsızdır. Her tick hız ileri/yan bileşenlere
   ayrılır; yan bileşen tutunmayla söner (`GRIP_TRACK` 14, `GRIP_GRASS` 7, `GRIP_DRIFT` 3.2). Tutunma
   düştükçe araba kayar.
