@@ -79,7 +79,9 @@ frontend/src/
 - Koordinatlar: sunucu 2D (x, y) → Three.js (x, z). Dünya 1600×900, pist genişliği 130, bordür 12.
   Bordür hem `Track.CURB_WIDTH` hem `world.ts CURB_WIDTH` içinde tanımlı; birlikte değiştir.
 - Pist: `Track.CONTROL` kontrol noktaları → Catmull-Rom ile 140 nokta. Nokta 0 başlangıç çizgisidir.
-  Bu noktalar tur sayımında kontrol noktası olarak da kullanılır. Kısa yoldan kesmeyi ±3'lük arama penceresi engeller.
+  Bu noktalar tur sayımında kontrol noktası olarak da kullanılır. "Pistte mi" kontrolü pistin **tamamına** bakar
+  (`Track.distanceToTrack`). İlerleme penceresi çimde -3..+3, asfaltta -3..+12 (`REJOIN_WINDOW`): pistten çıkıp
+  ileriden dönen takılmaz, çimden uzun kestirme ise sayılmaz.
 - Tur: ilk başlangıç çizgisi geçişi dahil `LAPS * size + 1` geçişte bitiş. İlk bitirenden sonra 20 sn ek süre.
 - Puan: 10-7-5-3-2-1. Takım modunda istemci takım toplamını hesaplar.
 - Görsel süsler istemcide sunucu durumundan türetilir: tekerlek dönüşü, direksiyon (`steer` sunucudan gelir),

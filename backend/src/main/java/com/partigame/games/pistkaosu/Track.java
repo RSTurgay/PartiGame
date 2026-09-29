@@ -82,6 +82,15 @@ final class Track {
         return Math.hypot(x - (ax + t * dx), y - (ay + t * dy));
     }
 
+    /** (x, y) noktasının pistin orta çizgisine en kısa uzaklığı (tüm segmentler). */
+    double distanceToTrack(double x, double y) {
+        double best = Double.MAX_VALUE;
+        for (int i = 0; i < size; i++) {
+            best = Math.min(best, distanceToSegment(i, x, y));
+        }
+        return best;
+    }
+
     /** Nokta i'deki gidiş yönü (radyan). */
     double heading(int i) {
         int j = wrap(i + 1);

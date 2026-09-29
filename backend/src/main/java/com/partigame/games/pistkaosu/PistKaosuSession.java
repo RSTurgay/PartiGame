@@ -50,6 +50,11 @@ final class PistKaosuSession implements GameSession {
     private static final double SPIN_RATE = 12;
     /** Kontrol noktası ararken bakılan pencere; kısa yoldan kesmeyi engeller. */
     private static final int SEARCH_WINDOW = 3;
+    /**
+     * Asfalta dönen araba ilerlemesini bu kadar nokta ileriden yakalayabilir (~500 birim). Çimde pencere
+     * dar kalır; böylece virajda pistten çıkıp biraz ileriden dönen takılmaz ama çimden uzun kestirme işe yaramaz.
+     */
+    private static final int REJOIN_WINDOW = 12;
     private static final int[] POINTS_BY_PLACE = {10, 7, 5, 3, 2, 1};
 
     private enum Phase { COUNTDOWN, RACE, DONE }
@@ -116,6 +121,11 @@ final class PistKaosuSession implements GameSession {
 
     private static boolean flag(Map<String, Object> input, String key) {
         return Boolean.TRUE.equals(input.get(key));
+    }
+
+    /** Testler için. */
+    Car car(String playerId) {
+        return cars.get(playerId);
     }
 
     @Override
@@ -188,7 +198,9 @@ final class PistKaosuSession implements GameSession {
      * (drift, çim) araba yana kayar.
      */
     private void drive(Car car, double dt) {
-        car.onTrack = distanceToTrack(car) <= Track.TRACK_WIDTH / 2 + Track.CURB_WIDTH;
+        // Pistin tamamına bakılır; sadece son kontrol noktasının çevresine bakmak, pistten çıkıp
+        // ileriden dönen arabayı asfalttayken de "pist dışı" sayıyordu.
+        car.onTrack = track.distanceToTrack(car.x, car.y) <= Track.TRACK_WIDTH / 2 + Track.CURB_WIDTH;
         if (car.disabled()) {
             driveDisabled(car, dt);
             return;
@@ -299,22 +311,15 @@ final class PistKaosuSession implements GameSession {
         }
     }
 
-    private double distanceToTrack(Car car) {
-        double best = Double.MAX_VALUE;
-        for (int k = -SEARCH_WINDOW; k <= SEARCH_WINDOW; k++) {
-            best = Math.min(best, track.distanceToSegment(car.nextCheckpoint + k - 1, car.x, car.y));
-        }
-        return best;
-    }
-
     /**
      * Arabanın yakınındaki segmentleri tarar; sıradaki noktayı geçmişse ilerletir.
      * Segment i, nokta i'den i+1'e uzanır; araba segment i'deyse nokta i'yi geçmiştir.
      */
-    private void trackProgress(Car car) {
+    void trackProgress(Car car) {
         int bestOffset = 0;
         double bestDistance = Double.MAX_VALUE;
-        for (int k = -SEARCH_WINDOW; k <= SEARCH_WINDOW; k++) {
+        int ahead = car.onTrack ? REJOIN_WINDOW : SEARCH_WINDOW;
+        for (int k = -SEARCH_WINDOW; k <= ahead; k++) {
             double d = track.distanceToSegment(car.nextCheckpoint + k, car.x, car.y);
             if (d < bestDistance) {
                 bestDistance = d;

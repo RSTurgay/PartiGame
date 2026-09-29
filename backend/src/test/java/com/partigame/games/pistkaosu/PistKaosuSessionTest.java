@@ -67,6 +67,40 @@ class PistKaosuSessionTest {
     }
 
     @Test
+    void pistenCikipIlerdenDonenArabaPisteSayilirVeTuruIlerler() {
+        run(3.1);
+        Car car = session.car(ID);
+        Track track = Track.standard();
+        // Başlangıçtan geçir, sonra pistin 9 nokta ilerisine (eski ±3'lük pencerenin dışı) ışınla.
+        car.x = track.xs[1];
+        car.y = track.ys[1];
+        run(DT);
+        int before = car.passed;
+        car.x = track.xs[10];
+        car.y = track.ys[10];
+        run(DT);
+        assertTrue(car().onTrack(), "asfalttaki araba pistte sayılmalı");
+        assertTrue(car.passed >= before + 8, "ilerleme yakalanmalı: " + before + " → " + car.passed);
+    }
+
+    @Test
+    void cimdenUzunKestirmeIlerlemeSaymaz() {
+        run(3.1);
+        Car car = session.car(ID);
+        Track track = Track.standard();
+        car.x = track.xs[1];
+        car.y = track.ys[1];
+        run(DT);
+        int before = car.passed;
+        // Pist içindeki çimde, 30 nokta ileriye karşılık gelen bir yere geç.
+        car.x = 700;
+        car.y = 450;
+        run(DT);
+        assertFalse(car().onTrack());
+        assertEquals(before, car.passed, "çimdeki araba ilerleme kazanmamalı");
+    }
+
+    @Test
     void uzunDriftBirakilincaSuperTurboVerir() {
         Car car = new Car(ID, 0, 0, 0, 0);
         car.onTrack = true;
