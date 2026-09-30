@@ -3,6 +3,7 @@ package com.partigame.room;
 import com.partigame.game.GameContext;
 import com.partigame.game.GameMode;
 import com.partigame.game.GameModule;
+import com.partigame.game.GameOption;
 import com.partigame.game.GameSession;
 import com.partigame.game.PlayerInfo;
 import com.partigame.game.PlayerResult;
@@ -48,6 +49,8 @@ public class Room {
     private String hostId;
     private GameModule game;
     private GameMode mode = GameMode.FFA;
+    /** Seçili oyunun ayarları; oyun değişince varsayılanlara döner. */
+    private final Map<String, String> options = new HashMap<>();
     private RoomPhase phase = RoomPhase.LOBBY;
     private GameSession session;
     private ScheduledFuture<?> ticker;
@@ -59,6 +62,7 @@ public class Room {
          ScheduledExecutorService scheduler, Runnable onEmpty) {
         this.code = code;
         this.game = defaultGame;
+        resetOptions();
         this.gameLookup = gameLookup;
         this.scheduler = scheduler;
         this.onEmpty = onEmpty;
@@ -122,10 +126,30 @@ public class Room {
         if (!selected.supportedModes().contains(selectedMode)) {
             selectedMode = selected.supportedModes().iterator().next();
         }
-        game = selected;
+        if (selected != game) {
+            game = selected;
+            resetOptions();
+        }
         mode = selectedMode;
         assignTeams();
         broadcastRoom();
+    }
+
+    public synchronized void setOption(String playerId, String key, String value) {
+        requireHost(playerId);
+        requirePhase(RoomPhase.LOBBY);
+        GameOption option = game.options().stream().filter(o -> o.key().equals(key)).findFirst()
+                .orElseThrow(() -> new GameException("Bu oyunda böyle bir ayar yok."));
+        if (!option.allows(value)) {
+            throw new GameException("Geçersiz seçim.");
+        }
+        options.put(key, value);
+        broadcastRoom();
+    }
+
+    private void resetOptions() {
+        options.clear();
+        game.options().forEach(o -> options.put(o.key(), o.defaultValue()));
     }
 
     public synchronized void setTeam(String playerId, int team) {
@@ -153,7 +177,7 @@ public class Room {
         validatePlayerCount();
 
         List<PlayerInfo> infos = players.values().stream().map(Player::info).toList();
-        session = game.createSession(new GameContext(mode, infos));
+        session = game.createSession(new GameContext(mode, infos, Map.copyOf(options)));
         phase = RoomPhase.PLAYING;
         broadcast(new Messages.GameStarted(game.id(), mode, session.initData()));
         broadcastRoom();
@@ -306,7 +330,7 @@ public class Room {
                 .map(p -> new PlayerView(p.id(), p.name(), p.color(), p.team(), scores.getOrDefault(p.id(), 0)))
                 .toList();
         broadcast(new Messages.RoomState(
-                new RoomView(code, hostId, phase, game.id(), mode, views, lastResults)));
+                new RoomView(code, hostId, phase, game.id(), mode, Map.copyOf(options), views, lastResults)));
     }
 
     private void broadcast(Object message) {

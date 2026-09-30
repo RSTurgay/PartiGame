@@ -11,6 +11,16 @@ Arkadaşlarla tarayıcıdan oynanan, çok oyunculu mini oyun platformu. Oda kur,
 - **Puanlar:** 10-7-5-3-2-1. Takım modunda takım arkadaşlarının puanları toplanır.
 - Çime çıkınca yavaşlarsın. Pistten kestirme yapmak işe yaramaz, kontrol noktaları sırayla geçilmeli.
 
+## İkinci oyun: Bulmaca Kapışması 🧩
+
+Herkes aynı bulmacayı **sırayla** çözer. Sıra sendeyken süren içinde bildiğin kelimeleri yaz; çözülen kelimeler
+bulmacada kalır, kesişen harfler sıradaki oyuncuya ipucu olur.
+
+- **Lobide seçilir:** tur süresi (45 / 60 / 90 sn) ve zorluk (Kolay / Orta / Zor)
+- **Puan:** kelimenin harf sayısı + aynı turda art arda bildiklerine +2 seri bonusu. 💡 Harf al: −3 puan
+- **Modlar:** Herkes tek · 2'şer kişilik takımlar (takımın iki üyesi birlikte yazar) · Düello
+- Bulmaca bitene kadar oynanır; her oyunda soru bankasından yeni bir bulmaca üretilir
+
 ## Yapı
 
 ```

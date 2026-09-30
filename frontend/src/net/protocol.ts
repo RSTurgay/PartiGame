@@ -3,6 +3,14 @@
 export type GameMode = 'FFA' | 'TEAMS' | 'DUEL'
 export type RoomPhase = 'LOBBY' | 'PLAYING' | 'RESULTS'
 
+/** Oyunun lobide seçilebilen ayarı (backend game/GameOption). */
+export interface GameOptionInfo {
+  key: string
+  label: string
+  choices: { value: string; label: string }[]
+  defaultValue: string
+}
+
 export interface GameInfo {
   id: string
   name: string
@@ -10,6 +18,7 @@ export interface GameInfo {
   minPlayers: number
   maxPlayers: number
   modes: GameMode[]
+  options: GameOptionInfo[]
 }
 
 export interface PlayerView {
@@ -36,6 +45,8 @@ export interface RoomView {
   phase: RoomPhase
   gameId: string
   mode: GameMode
+  /** Seçili oyunun ayarları: anahtar → seçilen değer. */
+  options: Record<string, string>
   players: PlayerView[]
   lastResults: ResultView[]
 }
@@ -54,6 +65,7 @@ export type ClientMessage =
   | { type: 'join'; name: string; code: string }
   | { type: 'leave' }
   | { type: 'selectGame'; gameId?: string; mode?: GameMode }
+  | { type: 'setOption'; key: string; value: string }
   | { type: 'setTeam'; team: number }
   | { type: 'start' }
   | { type: 'lobby' }

@@ -1,5 +1,6 @@
 package com.partigame.game;
 
+import java.util.List;
 import java.util.Set;
 
 /**
@@ -20,6 +21,11 @@ public interface GameModule {
     int maxPlayers();
 
     Set<GameMode> supportedModes();
+
+    /** Lobide seçilebilen ayarlar; yoksa boş. */
+    default List<GameOption> options() {
+        return List.of();
+    }
 
     /** Oyun başlarken çağrılır; her maç için yeni bir oturum döner. */
     GameSession createSession(GameContext context);

@@ -24,7 +24,7 @@ public class GameRegistry {
     public List<GameInfo> catalog() {
         return modules.values().stream()
                 .map(m -> new GameInfo(m.id(), m.name(), m.description(),
-                        m.minPlayers(), m.maxPlayers(), List.copyOf(m.supportedModes())))
+                        m.minPlayers(), m.maxPlayers(), List.copyOf(m.supportedModes()), m.options()))
                 .toList();
     }
 
@@ -33,6 +33,6 @@ public class GameRegistry {
     }
 
     public record GameInfo(String id, String name, String description,
-                           int minPlayers, int maxPlayers, List<GameMode> modes) {
+                           int minPlayers, int maxPlayers, List<GameMode> modes, List<GameOption> options) {
     }
 }

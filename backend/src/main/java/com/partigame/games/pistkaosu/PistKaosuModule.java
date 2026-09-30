@@ -4,12 +4,14 @@ import com.partigame.game.GameContext;
 import com.partigame.game.GameMode;
 import com.partigame.game.GameModule;
 import com.partigame.game.GameSession;
+import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
 import java.util.EnumSet;
 import java.util.Set;
 
 @Component
+@Order(1)
 public class PistKaosuModule implements GameModule {
 
     @Override

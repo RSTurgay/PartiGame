@@ -45,17 +45,20 @@ Paket ekleyip çıkardıktan sonra Vite'i yeniden başlat; gerekirse `node_modul
 
 ```
 backend/src/main/java/com/partigame/
-├── game/        GameModule (oyun tanımı), GameSession (tek maç), GameRegistry, GameMode (FFA/TEAMS/DUEL)
+├── game/        GameModule (oyun tanımı), GameSession (tek maç), GameRegistry, GameMode (FFA/TEAMS/DUEL),
+│                GameOption (lobide seçilen oyun ayarı; GameContext.option ile okunur)
 ├── room/        Room (oyuncular, lobi, 30 tick/sn oyun döngüsü, parti puanı), RoomManager, Messages (çıkan mesajlar)
 ├── net/         GameSocketHandler (/ws), ClientMessage (gelen mesajlar)
 ├── config/      WebSocketConfig
-└── games/pistkaosu/  Track (pist), Car, PistKaosuSession (fizik, tur, sıralama), PistKaosuModule
+├── games/pistkaosu/  Track (pist), Car, PistKaosuSession (fizik, tur, sıralama), ItemSystem, PistKaosuModule
+└── games/bulmaca/    ClueBank (resources/bulmaca/sorular.json), CrosswordGenerator, BulmacaSession, BulmacaModule
 
 frontend/src/
 ├── net/         GameClient (WebSocket, tipli abonelik), protocol.ts (backend mesajlarının birebir tipi)
 ├── components/  Home, Lobby, GameView, Results, PlayerName
 └── games/
     ├── registry.ts          ClientGame arayüzü: mount(parent, client, start) → temizleme fonksiyonu
+    ├── bulmaca/             BulmacaGame.tsx (React, mount içinde ayrı createRoot), types
     └── pist-kaosu/          PistKaosu3D (ana döngü, kamera), world (pist, kemer, start ışıkları, tribün, bariyer),
                              nature (ağaç, çalı, kaya, rüzgâr shader'ı), car (araba modeli), effects (toz),
                              hud (HTML göstergeler, mini harita), input (klavye), types
@@ -63,13 +66,14 @@ frontend/src/
 
 ### Yeni mini oyun eklemek
 1. Backend: `games/<oyun>/` altında `@Component` bir `GameModule` ve `GameSession`. Lobi, oda ve puan otomatik tanır.
+   Lobideki sırayı `@Order` belirler (1: Pist Kaosu, varsayılan oyun). Ayar gerekiyorsa `options()` döndür.
 2. Frontend: `src/games/<oyun>/` altında bir `ClientGame` yaz ve `registry.ts` listesine ekle.
 
 `GameSession` metotları oda kilidi altında tek thread'den çağrılır, senkronizasyon gerekmez.
 
 ### Protokol (JSON, WebSocket `/ws`)
 - İstemci → sunucu: `create {name}`, `join {name, code}`, `leave`, `selectGame {gameId?, mode?}`,
-  `setTeam {team}`, `start`, `lobby`, `input {input}`
+  `setOption {key, value}`, `setTeam {team}`, `start`, `lobby`, `input {input}`
 - Sunucu → istemci: `welcome {games}`, `joined {code, playerId}`, `room {room}`,
   `gameStart {gameId, mode, init}`, `state {state}`, `gameEnd {results}`, `error {message}`
 - Tipler iki tarafta elle eşleniyor: `frontend/src/net/protocol.ts` ↔ `room/Messages.java`,
@@ -107,6 +111,19 @@ frontend/src/
 - İstemci efektleri (`effects.ts`, `skids.ts`): drift kıvılcımı (şarj rengine göre), lastik izi (drift, kayma, sert fren;
   kare hızından bağımsız, yol boyunca doldurulur), egzoz alevi, turbo şeridinde akan oklar, HUD drift göstergesi.
 
+### Bulmaca Kapışması detayları
+- Sıralı ortak bulmaca: sıradaki oyuncu (takım modunda takımın tamamı) süre içinde istediği kelimeleri çözer;
+  çözülen kelimeler herkes için açık kalır. Bulmaca bitene kadar sürer (güvenlik sınırı `MAX_ROUNDS` 10 tur).
+- Ayarlar (lobide): `sure` 45/60/90 sn, `zorluk` KOLAY/ORTA/ZOR. Orta ve zorda bir alt seviyeden %40 soru karışır.
+- Puan: kelime uzunluğu + aynı turdaki seri × 2. Harf al −3 (sıfırın altına inmez). Yanlış cevap puan düşürmez.
+  Bir tam turda kimse bir şey çözemezse her kelimede bir harf açılır. Sonuçta parti puanı sıralamaya göre 10-7-5-3-2-1.
+- Kesişimlerle tüm harfleri açılan kelime kendiliğinden tamamlanır (`solvedBy` = "", puan yok).
+- **Cevaplar istemciye gönderilmez**; init'te sadece yer/uzunluk/ipucu, snapshot'ta açık harfler (`grid`: '#' boş, '_' kapalı).
+- Cevap karşılaştırma `TurkishText.normalize` (Türkçe büyük harf, harf dışı atılır). İstemci de `toLocaleUpperCase('tr-TR')`.
+- Soru bankası: `cevap` tek kelime, sadece harf, 3-11 harf, `zorluk` 1-3. Kurala uymayan soru yüklenirken atılır
+  (`CrosswordGeneratorTest` atılan soru olmadığını da kontrol eder). Aynı cevap farklı ipucuyla tekrar edebilir.
+- Üretici: 40 deneme, hedef 12 kelime, en fazla 13×13; en çok kelimeli, sonra en küçük alanlı deneme seçilir.
+
 ## Kurallar ve dikkat edilecekler
 - Phaser/Three sahne sınıflarında motorun kendi metot adlarıyla çakışan alan adı kullanma
   (örnek: Phaser'da `init` alanı sahneyi bozmuştu ve siyah ekrana yol açmıştı).
@@ -115,6 +132,10 @@ frontend/src/
   **uniform** olarak ver. Program önbelleği aynı kaynak kodlu shader'ları paylaşır.
 - Sunucu metin biçimlendirmesinde `Locale.ROOT` kullan (Türkçe locale ondalıkta virgül üretir).
 - Tüm kullanıcı metinleri Türkçe.
+- React ile yazılan oyunlarda `mount` içinde her seferinde yeni bir kap `div` ve `createRoot` kullan, kapatmayı
+  `setTimeout` ile ertele (StrictMode çift kurulum + render sırasında senkron unmount uyarısı).
+- Tarayıcı testlerinde birden fazla sayfa açınca, bir sayfayla çalışmadan önce `page.bringToFront()` çağır;
+  Chrome arka plandaki sekmeyi dondurur ve komutlar zaman aşımına uğrar.
 
 ## Test
 - `mvnw.cmd test`: `PistKaosuSessionTest` roket start, erken gaz, turbo şeridi ve drift turbosu kurallarını,
@@ -125,6 +146,10 @@ frontend/src/
 - `cd tools && npm install && node browser-test.mjs`: gerçek Chrome ile iki oyuncu, ekran görüntüleri
   `tools/screenshots/` altına kaydedilir. Backend ve Vite açık olmalı. Headless ortamda saniyede 2-6 kare
   çizilir; zamanlamaya bağlı sahneler (drift anı, roket start) her koşuda aynı yere denk gelmeyebilir.
+- `cd tools && node bulmaca-test.mjs`: iki oyunculu Bulmaca testi (ayar seçimi, doğru/yanlış cevap, harf al, pas,
+  sıra değişimi). Cevabı ekrandaki ipucunu soru bankasında arayarak bulur.
+- `mvnw.cmd test` ayrıca `CrosswordGeneratorTest` (3 zorlukta 90 bulmaca üretip geçerliliğini denetler) ve
+  `BulmacaSessionTest` (sıra, puan, seri, joker, pas, süre, takım, oyuncu çıkışı, bitiş, cevap gizliliği).
 - `cd tools && node spectate-bots.mjs`: tarayıcı oyuncusu (otopilotla) ve eşya kullanan iki bot yarışır, 3 sn'de bir
   ekran görüntüsü alınır. Headless'ta otopilot yavaş kaldığı için tarayıcı arabası iyi süremez; botların eşya
   efektleri ve olay akışı görülür.
@@ -141,7 +166,11 @@ frontend/src/
       egzoz alevi, turboda kamera efekti, drift göstergesi
 - [x] Sürpriz kutuları: dönen gökkuşağı kutular, çark, turbo/muz/buz/kalkan, uçan buz parçası, buz bloğu,
       kalkan balonu, HUD eşya yuvası ve olay akışı ("🧊 Ayşe → Can")
-- [x] Yayın hazırlığı: Dockerfile (çok aşamalı), render.yaml, PORT ayarı
+- [x] Yayın hazırlığı: Dockerfile (çok aşamalı), render.yaml, PORT ayarı. Canlı: https://partigame.onrender.com
+- [x] Kamera modları: yüksek açı / arkadan / tüm pist (C), seçim hatırlanır
+- [x] Platform: oyun ayarları (GameOption) ve lobide ayar seçimi
+- [x] **Bulmaca Kapışması** (2. oyun): ~340 soruluk Türkçe banka, otomatik bulmaca üretici, sıralı tur, seri bonusu,
+      harf al jokeri, takım modu, lobide süre ve zorluk seçimi
 
 ## Yol haritası (sıradaki önce)
 1. [ ] **Takım mekanikleri**: takım arkadaşının arkasında rüzgâr desteği, eşya pası
@@ -150,4 +179,5 @@ frontend/src/
 3. [ ] Yeniden bağlanma (sayfa yenilenince odaya geri dönme; şu an oyuncu odadan düşüyor)
 4. [ ] Ses efektleri ve müzik (motor, drift, turbo), dokunmatik ve mobil kontroller
 5. [ ] Eşya fikirleri: üçlü turbo, sonuncuya yıldırım (herkesi yavaşlatır), eşya pası (takım)
-6. [ ] Yeni mini oyunlar (parti platformu fikri: Bomberman tarzı, futbol ve benzeri)
+6. [ ] Bulmaca: soru bankasını büyütmek, kategoriler, özel soru paketi (ör. ofis soruları)
+7. [ ] Yeni mini oyunlar (parti platformu fikri: Bomberman tarzı, futbol ve benzeri)

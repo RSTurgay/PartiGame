@@ -16,5 +16,5 @@ export function GameView({ start }: { start: GameStart }) {
   if (!game) {
     return <div className="card center">Bu oyun istemcide bulunamadı: {start.gameId}</div>
   }
-  return <div className="game-view" ref={container} />
+  return <div className={`game-view game-${game.id}`} ref={container} />
 }

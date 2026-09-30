@@ -11,6 +11,7 @@ import java.util.Map;
  *   <li>create: name</li>
  *   <li>join: name, code</li>
  *   <li>selectGame: gameId, mode</li>
+ *   <li>setOption: key, value (oyun ayarı)</li>
  *   <li>setTeam: team</li>
  *   <li>start, lobby, leave: (alan yok)</li>
  *   <li>input: input (oyuna özel)</li>
@@ -18,5 +19,5 @@ import java.util.Map;
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
 public record ClientMessage(String type, String name, String code, String gameId, GameMode mode,
-                            Integer team, Map<String, Object> input) {
+                            Integer team, String key, String value, Map<String, Object> input) {
 }

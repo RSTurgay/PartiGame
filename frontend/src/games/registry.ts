@@ -1,5 +1,6 @@
 import type { GameClient } from '../net/GameClient'
 import type { GameMode, PlayerView } from '../net/protocol'
+import { bulmaca } from './bulmaca'
 import { pistKaosu } from './pist-kaosu'
 
 /** Bir maç başlarken oyuna verilen bilgiler. */
@@ -22,7 +23,7 @@ export interface ClientGame {
   mount(parent: HTMLElement, client: GameClient, start: GameStart): () => void
 }
 
-const games: ClientGame[] = [pistKaosu]
+const games: ClientGame[] = [pistKaosu, bulmaca]
 
 export function findGame(id: string): ClientGame | undefined {
   return games.find((g) => g.id === id)

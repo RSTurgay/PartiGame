@@ -74,6 +74,7 @@ public class GameSocketHandler extends TextWebSocketHandler {
                     .orElseThrow(() -> new GameException("Oda bulunamadı.")), msg.name());
             case "leave" -> leaveRoom(client);
             case "selectGame" -> room(client).selectGame(client.playerId, msg.gameId(), msg.mode());
+            case "setOption" -> room(client).setOption(client.playerId, msg.key(), msg.value());
             case "setTeam" -> room(client).setTeam(client.playerId, msg.team() == null ? 0 : msg.team());
             case "start" -> room(client).start(client.playerId);
             case "lobby" -> room(client).backToLobby(client.playerId);

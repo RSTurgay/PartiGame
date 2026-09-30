@@ -4,6 +4,7 @@ import com.partigame.game.GameMode;
 import com.partigame.game.GameRegistry.GameInfo;
 
 import java.util.List;
+import java.util.Map;
 
 /** Sunucudan istemciye giden mesajlar. Her mesajın bir {@code type} alanı vardır. */
 public final class Messages {
@@ -54,7 +55,7 @@ public final class Messages {
     }
 
     public record RoomView(String code, String hostId, RoomPhase phase, String gameId, GameMode mode,
-                           List<PlayerView> players, List<ResultView> lastResults) {
+                           Map<String, String> options, List<PlayerView> players, List<ResultView> lastResults) {
     }
 
     /** {@code score}: bu odada oynanan tüm oyunlardan toplanan parti puanı. */

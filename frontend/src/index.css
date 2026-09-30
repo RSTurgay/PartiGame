@@ -351,6 +351,339 @@ label {
   background: #a8dcff;
 }
 
+/* Bulmaca Kapışması */
+.game-view.game-bulmaca {
+  aspect-ratio: auto;
+  max-height: none;
+  min-height: calc(100vh - 100px);
+  overflow: visible;
+  background: transparent;
+  max-width: 1280px;
+}
+
+.bm-host,
+.bm-root {
+  width: 100%;
+}
+
+.bm-center {
+  text-align: center;
+  padding: 40px;
+}
+
+.bm-turn {
+  background: var(--card);
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius);
+  padding: 14px 18px 0;
+  margin-bottom: 14px;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 4px 12px;
+  overflow: hidden;
+}
+
+.bm-turn.mine {
+  border-color: var(--accent);
+  box-shadow: 0 0 24px #ff5a8a44;
+}
+
+.bm-turn-text {
+  font-size: clamp(18px, 2.4vw, 24px);
+  font-weight: 800;
+}
+
+.bm-turn-meta {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.bm-seconds {
+  color: var(--text);
+  font-size: 20px;
+  font-variant-numeric: tabular-nums;
+}
+
+.bm-timer {
+  grid-column: 1 / -1;
+  height: 6px;
+  margin: 10px -18px 0;
+  background: #0004;
+}
+
+.bm-timer-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent), var(--accent-2));
+  transition: width 0.2s linear;
+}
+
+.bm-timer-fill.low {
+  background: #ff3b3b;
+}
+
+.bm-main {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 340px;
+  gap: 14px;
+  align-items: start;
+}
+
+@media (max-width: 900px) {
+  .bm-main {
+    grid-template-columns: 1fr;
+  }
+}
+
+.bm-board {
+  display: grid;
+  gap: 14px;
+  justify-items: center;
+}
+
+.bm-grid {
+  /* Hem genişliğe hem yüksekliğe sığsın: yanda ipuçları, altta cevap paneli var. */
+  --bm-cell: min(46px, calc((100vw - 460px) / var(--bm-cols)), calc((100vh - 400px) / var(--bm-rows)));
+  display: grid;
+  gap: 3px;
+  padding: 12px;
+  background: var(--card);
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius);
+}
+
+@media (max-width: 900px) {
+  .bm-grid {
+    --bm-cell: min(40px, calc((100vw - 70px) / var(--bm-cols)));
+  }
+}
+
+.bm-cell {
+  width: var(--bm-cell);
+  height: var(--bm-cell);
+  min-width: 18px;
+  min-height: 18px;
+  background: #f4f1e8;
+  color: #1b1d2e;
+  border-radius: 4px;
+  position: relative;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  transition: background 0.3s;
+}
+
+.bm-cell.empty {
+  background: transparent;
+  cursor: default;
+}
+
+.bm-cell.selected {
+  outline: 3px solid var(--accent-2);
+  outline-offset: -2px;
+  background: #fff3c4;
+}
+
+.bm-cell.flash {
+  animation: bm-flash 1.2s ease-out;
+}
+
+@keyframes bm-flash {
+  0% {
+    transform: scale(1.25);
+    box-shadow: 0 0 18px #ffd93d;
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.bm-num {
+  position: absolute;
+  top: 1px;
+  left: 3px;
+  font-size: calc(var(--bm-cell) * 0.26);
+  font-weight: 700;
+  color: #6b6f85;
+}
+
+.bm-letter {
+  font-size: calc(var(--bm-cell) * 0.56);
+  font-weight: 800;
+}
+
+.bm-answer {
+  width: 100%;
+  max-width: 720px;
+  background: var(--card);
+  border: 1px solid var(--accent);
+  border-radius: var(--radius);
+  padding: 14px;
+  display: grid;
+  gap: 12px;
+}
+
+.bm-answer.shake {
+  animation: bm-shake 0.4s;
+  border-color: #ff3b3b;
+}
+
+@keyframes bm-shake {
+  20%,
+  60% {
+    transform: translateX(-8px);
+  }
+  40%,
+  80% {
+    transform: translateX(8px);
+  }
+}
+
+.bm-slots {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: center;
+  cursor: text;
+}
+
+.bm-slot {
+  width: 38px;
+  height: 44px;
+  border-radius: 8px;
+  border: 2px solid var(--card-border);
+  background: #161826;
+  display: grid;
+  place-items: center;
+  font-size: 22px;
+  font-weight: 800;
+}
+
+.bm-slot.known {
+  color: var(--muted);
+}
+
+.bm-slot.typed {
+  border-color: var(--accent-2);
+}
+
+.bm-answer-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.bm-answer-row input {
+  flex: 1;
+  min-width: 180px;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  font-weight: 700;
+}
+
+.bm-waiting {
+  color: var(--muted);
+  text-align: center;
+  padding: 10px;
+}
+
+.bm-side {
+  display: grid;
+  gap: 12px;
+}
+
+.bm-scores,
+.bm-clues {
+  background: var(--card);
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius);
+  padding: 12px;
+  display: grid;
+  gap: 6px;
+}
+
+.bm-score {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 8px;
+  align-items: center;
+  padding: 6px 8px;
+  border-radius: 8px;
+}
+
+.bm-score.active {
+  background: #ff5a8a22;
+  outline: 1px solid var(--accent);
+}
+
+.bm-score-name {
+  font-weight: 600;
+}
+
+.bm-feed {
+  display: grid;
+  gap: 4px;
+  min-height: 0;
+}
+
+.bm-feed-line {
+  padding: 6px 10px;
+  border-radius: 8px;
+  font-size: 14px;
+  background: #0006;
+  animation: pk-feed-in 0.2s ease-out;
+}
+
+.bm-feed-line.good {
+  background: #1f5a3a;
+}
+
+.bm-feed-line.bad {
+  background: #5a1f2a;
+}
+
+.bm-clues h3 {
+  margin: 0 0 4px;
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--muted);
+}
+
+.bm-clue {
+  display: grid;
+  grid-template-columns: 28px 1fr auto;
+  gap: 6px;
+  align-items: center;
+  text-align: left;
+  font-weight: 500;
+  font-size: 14px;
+  padding: 6px 8px;
+  background: transparent;
+  border: 1px solid transparent;
+}
+
+.bm-clue:disabled {
+  opacity: 1;
+}
+
+.bm-clue.selected {
+  border-color: var(--accent-2);
+  background: #ffb13d22;
+}
+
+.bm-clue.solved {
+  color: var(--muted);
+  text-decoration: line-through;
+}
+
+.bm-clue-num {
+  font-weight: 800;
+  color: var(--accent-2);
+}
+
 /* Pist Kaosu göstergeleri */
 .pk-canvas {
   display: block;

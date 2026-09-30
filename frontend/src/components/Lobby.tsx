@@ -106,6 +106,24 @@ export function Lobby({ room, myId, games, onLeave }: Props) {
           ))}
         </div>
 
+        {game?.options.map((option) => (
+          <div key={option.key}>
+            <h2>{option.label}</h2>
+            <div className="chips">
+              {option.choices.map((choice) => (
+                <button
+                  key={choice.value}
+                  className={`chip ${room.options[option.key] === choice.value ? 'selected' : ''}`}
+                  disabled={!isHost}
+                  onClick={() => client.send({ type: 'setOption', key: option.key, value: choice.value })}
+                >
+                  {choice.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        ))}
+
         {game && <p className="muted">🎮 {findGame(game.id)?.controls}</p>}
 
         <div className="lobby-actions">
