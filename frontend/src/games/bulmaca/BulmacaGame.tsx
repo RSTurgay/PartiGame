@@ -2,9 +2,16 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import type { GameClient } from '../../net/GameClient'
 import { TEAM_COLORS, TEAM_NAMES } from '../../net/protocol'
 import type { GameStart } from '../registry'
+import { KareBoard } from './KareBoard'
 import type { BulmacaEvent, BulmacaInit, BulmacaSnapshot, WordView } from './types'
 
 const HINT_COST = 3
+
+/** Olay akışında ipucunu kısaltarak göster (cevap istemcide olmadığı için kelime yerine ipucu yazılır). */
+function shortClue(clue: string | undefined) {
+  if (!clue) return ''
+  return clue.length > 26 ? `${clue.slice(0, 25)}…` : clue
+}
 const FEED_SECONDS = 5
 const FEED_MAX = 5
 /** Yeni çözülen kelimenin parlama süresi (ms). */
@@ -51,7 +58,7 @@ export function BulmacaGame({ client, start }: Props) {
     const handle = (e: BulmacaEvent) => {
       const word = init.words[e.word]
       if (e.type === 'solved') {
-        addFeed(`✓ ${nameOf(e.playerId)} · ${word?.number}. +${e.points}`, 'good')
+        addFeed(`✓ ${nameOf(e.playerId)} · ${shortClue(word?.clue)} +${e.points}`, 'good')
         setFlash((f) => ({ ...f, [e.word]: Date.now() }))
       } else if (e.type === 'wrong') {
         addFeed(`✗ ${nameOf(e.playerId)}: ${e.guess}`, 'bad')
@@ -155,168 +162,217 @@ export function BulmacaGame({ client, start }: Props) {
   const scores = [...snap.scores].sort((a, b) => b.points - a.points)
   const timerRatio = snap.phase === 'TURN' ? Math.max(0, snap.timer / init.turnSeconds) : 0
 
+  const kare = init.style === 'KARE'
+
+  const header = (
+    <header className={`bm-turn ${myTurn ? 'mine' : ''}`}>
+      <div className="bm-turn-text">
+        {snap.phase === 'INTRO' && `Bulmaca hazır! İlk sıra: ${turnName}`}
+        {snap.phase === 'TURN' && (myTurn ? '✍️ Sıra sende!' : `✍️ Sıra: ${turnName}`)}
+        {snap.phase === 'SWITCH' && `Sıradaki: ${turnName}`}
+        {snap.phase === 'DONE' && '🎉 Bulmaca tamamlandı!'}
+      </div>
+      <div className="bm-turn-meta">
+        <span>Tur {snap.round}</span>
+        <span>{init.difficulty}</span>
+        {snap.phase === 'TURN' && <strong className="bm-seconds">{Math.ceil(snap.timer)} sn</strong>}
+      </div>
+      <div className="bm-timer">
+        <div className={`bm-timer-fill ${timerRatio < 0.25 ? 'low' : ''}`} style={{ width: `${timerRatio * 100}%` }} />
+      </div>
+    </header>
+  )
+
+  const classicBoard = (
+    <div
+      className="bm-grid"
+      style={{
+        gridTemplateColumns: `repeat(${init.cols}, var(--bm-cell))`,
+        ['--bm-cols' as string]: init.cols,
+        ['--bm-rows' as string]: init.rows,
+      }}
+    >
+      {snap.grid.flatMap((row, r) =>
+        [...row].map((ch, c) => {
+          if (ch === '#') return <div key={`${r}:${c}`} className="bm-cell empty" />
+          const cell = cells.get(`${r}:${c}`)
+          const solvedWord = cell?.words.find((w) => solverColor(w))
+          const color = solvedWord ? solverColor(solvedWord) : undefined
+          const flashing = cell?.words.some((w) => Date.now() - (flash[w.id] ?? 0) < FLASH_MS)
+          return (
+            <div
+              key={`${r}:${c}`}
+              className={`bm-cell ${inSelected(r, c) ? 'selected' : ''} ${flashing ? 'flash' : ''}`}
+              style={color ? { background: `color-mix(in srgb, ${color} 38%, #f4f1e8)` } : undefined}
+              onClick={() => selectCell(r, c)}
+            >
+              {cell?.number && <span className="bm-num">{cell.number}</span>}
+              <span className="bm-letter">{ch === '_' ? '' : ch}</span>
+            </div>
+          )
+        }),
+      )}
+    </div>
+  )
+
+  const kareBoard = (
+    <KareBoard
+      init={init}
+      snap={snap}
+      selectedId={selectedWord?.id ?? null}
+      active={myTurn}
+      flash={flash}
+      solverColor={solverColor}
+      onSelectWord={select}
+      onSelectCell={selectCell}
+    />
+  )
+
+  const answerTitle = (w: WordView) => {
+    if (w.clueRow < 0 && kare) return '📷 Resim sorusu'
+    if (kare) return w.across ? '▶ Soldan sağa' : '▼ Yukarıdan aşağıya'
+    return `${w.number}. ${w.across ? 'Soldan sağa' : 'Yukarıdan aşağıya'}`
+  }
+
+  const answerPanel = myTurn && selectedWord && (
+    <div className={`bm-answer ${shake ? 'shake' : ''}`}>
+      <div className="bm-answer-clue">
+        <strong>{answerTitle(selectedWord)}</strong> {selectedWord.clue} ({selectedWord.length})
+      </div>
+      <div className="bm-slots" onClick={() => inputRef.current?.focus()}>
+        {Array.from({ length: selectedWord.length }, (_, i) => {
+          const r = selectedWord.across ? selectedWord.row : selectedWord.row + i
+          const c = selectedWord.across ? selectedWord.col + i : selectedWord.col
+          const known = snap.grid[r][c]
+          const typed = text[i]
+          return (
+            <span key={i} className={`bm-slot ${typed ? 'typed' : known !== '_' ? 'known' : ''}`}>
+              {typed ?? (known !== '_' ? known : '')}
+            </span>
+          )
+        })}
+      </div>
+      <div className="bm-answer-row">
+        <input
+          ref={inputRef}
+          value={text}
+          maxLength={selectedWord.length}
+          placeholder="Cevabı yaz, Enter'a bas"
+          autoComplete="off"
+          spellCheck={false}
+          onChange={(e) =>
+            setText(e.target.value.toLocaleUpperCase('tr-TR').replace(/[^\p{L}]/gu, '').slice(0, selectedWord.length))
+          }
+          onKeyDown={(e) => e.key === 'Enter' && submit()}
+        />
+        <button className="primary" onClick={submit} disabled={!text}>
+          Gönder
+        </button>
+        <button
+          onClick={() => client.send({ type: 'input', input: { action: 'hint', word: selectedWord.id } })}
+          title={`Rastgele bir harf aç (−${HINT_COST} puan)`}
+        >
+          💡 Harf al
+        </button>
+        <button onClick={() => client.send({ type: 'input', input: { action: 'pass' } })}>Pas geç</button>
+      </div>
+    </div>
+  )
+
+  const waiting = !myTurn && snap.phase === 'TURN' && (
+    <div className="bm-waiting">{turnName} düşünüyor… Sıran gelince bir soruya tıklayıp cevabı yazabilirsin.</div>
+  )
+
+  const scoreList = (
+    <div className="bm-scores">
+      {scores.map((s) => {
+        const p = players.get(s.playerId)
+        const active = snap.turn.includes(s.playerId) && snap.phase !== 'DONE'
+        return (
+          <div key={s.playerId} className={`bm-score ${active ? 'active' : ''}`}>
+            <span className="dot" style={{ background: p?.color }} />
+            <span className="bm-score-name">
+              {p?.name}
+              {s.playerId === myId && <span className="muted"> (sen)</span>}
+              {teamMode && p && p.team > 0 && (
+                <span className="bm-team" style={{ color: TEAM_COLORS[p.team] }}>
+                  {' '}
+                  · {TEAM_NAMES[p.team]}
+                </span>
+              )}
+            </span>
+            <strong>{s.points}</strong>
+          </div>
+        )
+      })}
+    </div>
+  )
+
+  const feedList = (
+    <div className="bm-feed">
+      {feed.map((f) => (
+        <div key={f.id} className={`bm-feed-line ${f.tone}`}>
+          {f.text}
+        </div>
+      ))}
+    </div>
+  )
+
+  const clueLists = [true, false].map((across) => (
+    <div key={String(across)} className="bm-clues">
+      <h3>{across ? 'Soldan sağa' : 'Yukarıdan aşağıya'}</h3>
+      {words
+        .filter((w) => w.across === across)
+        .map((w) => {
+          const color = solverColor(w)
+          return (
+            <button
+              key={w.id}
+              className={`bm-clue ${color ? 'solved' : ''} ${w.id === selectedWord?.id ? 'selected' : ''}`}
+              disabled={!myTurn || !!color}
+              onClick={() => select(w.id)}
+            >
+              <span className="bm-clue-num">{w.number}.</span>
+              <span>
+                {w.clue} ({w.length})
+              </span>
+              {color && <span className="dot" style={{ background: color }} />}
+            </button>
+          )
+        })}
+    </div>
+  ))
+
+  if (kare) {
+    return (
+      <div className="bm-root">
+        {header}
+        <div className="bm-main kare">
+          <section className="bm-board">{kareBoard}</section>
+          <aside className="bm-side">
+            {answerPanel}
+            {waiting}
+            {scoreList}
+            {feedList}
+          </aside>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="bm-root">
-      <header className={`bm-turn ${myTurn ? 'mine' : ''}`}>
-        <div className="bm-turn-text">
-          {snap.phase === 'INTRO' && `Bulmaca hazır! İlk sıra: ${turnName}`}
-          {snap.phase === 'TURN' && (myTurn ? '✍️ Sıra sende!' : `✍️ Sıra: ${turnName}`)}
-          {snap.phase === 'SWITCH' && `Sıradaki: ${turnName}`}
-          {snap.phase === 'DONE' && '🎉 Bulmaca tamamlandı!'}
-        </div>
-        <div className="bm-turn-meta">
-          <span>Tur {snap.round}</span>
-          <span>{init.difficulty}</span>
-          {snap.phase === 'TURN' && <strong className="bm-seconds">{Math.ceil(snap.timer)} sn</strong>}
-        </div>
-        <div className="bm-timer">
-          <div
-            className={`bm-timer-fill ${timerRatio < 0.25 ? 'low' : ''}`}
-            style={{ width: `${timerRatio * 100}%` }}
-          />
-        </div>
-      </header>
-
+      {header}
       <div className="bm-main">
         <section className="bm-board">
-          <div
-            className="bm-grid"
-            style={{
-              gridTemplateColumns: `repeat(${init.cols}, var(--bm-cell))`,
-              ['--bm-cols' as string]: init.cols,
-              ['--bm-rows' as string]: init.rows,
-            }}
-          >
-            {snap.grid.flatMap((row, r) =>
-              [...row].map((ch, c) => {
-                if (ch === '#') return <div key={`${r}:${c}`} className="bm-cell empty" />
-                const cell = cells.get(`${r}:${c}`)
-                const solvedWord = cell?.words.find((w) => solverColor(w))
-                const color = solvedWord ? solverColor(solvedWord) : undefined
-                const flashing = cell?.words.some((w) => Date.now() - (flash[w.id] ?? 0) < FLASH_MS)
-                return (
-                  <div
-                    key={`${r}:${c}`}
-                    className={`bm-cell ${inSelected(r, c) ? 'selected' : ''} ${flashing ? 'flash' : ''}`}
-                    style={color ? { background: `color-mix(in srgb, ${color} 38%, #f4f1e8)` } : undefined}
-                    onClick={() => selectCell(r, c)}
-                  >
-                    {cell?.number && <span className="bm-num">{cell.number}</span>}
-                    <span className="bm-letter">{ch === '_' ? '' : ch}</span>
-                  </div>
-                )
-              }),
-            )}
-          </div>
-
-          {myTurn && selectedWord && (
-            <div className={`bm-answer ${shake ? 'shake' : ''}`}>
-              <div className="bm-answer-clue">
-                <strong>
-                  {selectedWord.number}. {selectedWord.across ? 'Soldan sağa' : 'Yukarıdan aşağıya'}
-                </strong>{' '}
-                {selectedWord.clue} ({selectedWord.length})
-              </div>
-              <div className="bm-slots" onClick={() => inputRef.current?.focus()}>
-                {Array.from({ length: selectedWord.length }, (_, i) => {
-                  const r = selectedWord.across ? selectedWord.row : selectedWord.row + i
-                  const c = selectedWord.across ? selectedWord.col + i : selectedWord.col
-                  const known = snap.grid[r][c]
-                  const typed = text[i]
-                  return (
-                    <span key={i} className={`bm-slot ${typed ? 'typed' : known !== '_' ? 'known' : ''}`}>
-                      {typed ?? (known !== '_' ? known : '')}
-                    </span>
-                  )
-                })}
-              </div>
-              <div className="bm-answer-row">
-                <input
-                  ref={inputRef}
-                  value={text}
-                  maxLength={selectedWord.length}
-                  placeholder="Cevabı yaz, Enter'a bas"
-                  autoComplete="off"
-                  spellCheck={false}
-                  onChange={(e) =>
-                    setText(e.target.value.toLocaleUpperCase('tr-TR').replace(/[^\p{L}]/gu, '').slice(0, selectedWord.length))
-                  }
-                  onKeyDown={(e) => e.key === 'Enter' && submit()}
-                />
-                <button className="primary" onClick={submit} disabled={!text}>
-                  Gönder
-                </button>
-                <button
-                  onClick={() => client.send({ type: 'input', input: { action: 'hint', word: selectedWord.id } })}
-                  title={`Rastgele bir harf aç (−${HINT_COST} puan)`}
-                >
-                  💡 Harf al
-                </button>
-                <button onClick={() => client.send({ type: 'input', input: { action: 'pass' } })}>Pas geç</button>
-              </div>
-            </div>
-          )}
-          {!myTurn && snap.phase === 'TURN' && (
-            <div className="bm-waiting">{turnName} düşünüyor… Sıran gelince ipuçlarından birini seçip yazabilirsin.</div>
-          )}
+          {classicBoard}
+          {answerPanel}
+          {waiting}
         </section>
-
         <aside className="bm-side">
-          <div className="bm-scores">
-            {scores.map((s) => {
-              const p = players.get(s.playerId)
-              const active = snap.turn.includes(s.playerId) && snap.phase !== 'DONE'
-              return (
-                <div key={s.playerId} className={`bm-score ${active ? 'active' : ''}`}>
-                  <span className="dot" style={{ background: p?.color }} />
-                  <span className="bm-score-name">
-                    {p?.name}
-                    {s.playerId === myId && <span className="muted"> (sen)</span>}
-                    {teamMode && p && p.team > 0 && (
-                      <span className="bm-team" style={{ color: TEAM_COLORS[p.team] }}>
-                        {' '}
-                        · {TEAM_NAMES[p.team]}
-                      </span>
-                    )}
-                  </span>
-                  <strong>{s.points}</strong>
-                </div>
-              )
-            })}
-          </div>
-
-          <div className="bm-feed">
-            {feed.map((f) => (
-              <div key={f.id} className={`bm-feed-line ${f.tone}`}>
-                {f.text}
-              </div>
-            ))}
-          </div>
-
-          {[true, false].map((across) => (
-            <div key={String(across)} className="bm-clues">
-              <h3>{across ? 'Soldan sağa' : 'Yukarıdan aşağıya'}</h3>
-              {words
-                .filter((w) => w.across === across)
-                .map((w) => {
-                  const color = solverColor(w)
-                  return (
-                    <button
-                      key={w.id}
-                      className={`bm-clue ${color ? 'solved' : ''} ${w.id === selectedWord?.id ? 'selected' : ''}`}
-                      disabled={!myTurn || !!color}
-                      onClick={() => select(w.id)}
-                    >
-                      <span className="bm-clue-num">{w.number}.</span>
-                      <span>
-                        {w.clue} ({w.length})
-                      </span>
-                      {color && <span className="dot" style={{ background: color }} />}
-                    </button>
-                  )
-                })}
-            </div>
-          ))}
+          {scoreList}
+          {feedList}
+          {clueLists}
         </aside>
       </div>
     </div>

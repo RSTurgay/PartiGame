@@ -13,10 +13,15 @@ Arkadaşlarla tarayıcıdan oynanan, çok oyunculu mini oyun platformu. Oda kur,
 
 ## İkinci oyun: Bulmaca Kapışması 🧩
 
+İki tip var: **Gazete (kare)**: tamamen dolu ızgara, sorular kutuların içinde, köşede resimli soru;
+**Klasik**: kesişen kelimeler, ipuçları yanda.
+
 Herkes aynı bulmacayı **sırayla** çözer. Sıra sendeyken süren içinde bildiğin kelimeleri yaz; çözülen kelimeler
 bulmacada kalır, kesişen harfler sıradaki oyuncuya ipucu olur.
 
-- **Lobide seçilir:** tur süresi (45 / 60 / 90 sn) ve zorluk (Kolay / Orta / Zor)
+- **Lobide seçilir:** bulmaca tipi, tur süresi (45 / 60 / 90 sn) ve zorluk (Kolay / Orta / Zor, klasik için)
+- Resimli sorulardaki fotoğraflar Wikimedia Commons'tan, açık lisanslıdır; kaynaklar
+  `frontend/public/bulmaca/resim/KAYNAKLAR.md` dosyasında ve oyunda ⓘ simgesinde
 - **Puan:** kelimenin harf sayısı + aynı turda art arda bildiklerine +2 seri bonusu. 💡 Harf al: −3 puan
 - **Modlar:** Herkes tek · 2'şer kişilik takımlar (takımın iki üyesi birlikte yazar) · Düello
 - Bulmaca bitene kadar oynanır; her oyunda soru bankasından yeni bir bulmaca üretilir

@@ -51,14 +51,15 @@ backend/src/main/java/com/partigame/
 ├── net/         GameSocketHandler (/ws), ClientMessage (gelen mesajlar)
 ├── config/      WebSocketConfig
 ├── games/pistkaosu/  Track (pist), Car, PistKaosuSession (fizik, tur, sıralama), ItemSystem, PistKaosuModule
-└── games/bulmaca/    ClueBank (resources/bulmaca/sorular.json), CrosswordGenerator, BulmacaSession, BulmacaModule
+└── games/bulmaca/    ClueBank (sorular.json, klasik), CrosswordGenerator (klasik), KareBank (kare-*.json + resimler.json),
+                      KareGenerator + WordIndex (gazete tipi), Crossword, Picture, BulmacaSession, BulmacaModule
 
 frontend/src/
 ├── net/         GameClient (WebSocket, tipli abonelik), protocol.ts (backend mesajlarının birebir tipi)
 ├── components/  Home, Lobby, GameView, Results, PlayerName
 └── games/
     ├── registry.ts          ClientGame arayüzü: mount(parent, client, start) → temizleme fonksiyonu
-    ├── bulmaca/             BulmacaGame.tsx (React, mount içinde ayrı createRoot), types
+    ├── bulmaca/             BulmacaGame.tsx (React, mount içinde ayrı createRoot), KareBoard.tsx (gazete ızgarası), types
     └── pist-kaosu/          PistKaosu3D (ana döngü, kamera), world (pist, kemer, start ışıkları, tribün, bariyer),
                              nature (ağaç, çalı, kaya, rüzgâr shader'ı), car (araba modeli), effects (toz),
                              hud (HTML göstergeler, mini harita), input (klavye), types
@@ -112,6 +113,19 @@ frontend/src/
   kare hızından bağımsız, yol boyunca doldurulur), egzoz alevi, turbo şeridinde akan oklar, HUD drift göstergesi.
 
 ### Bulmaca Kapışması detayları
+- İki tip (lobide `tip`): **KARE** (varsayılan, gazete tipi) ve **KLASIK**. Zorluk ayarı sadece klasiği etkiler.
+- **Kare (gazete tipi):** 9×12 ızgara, boş hücre yok: her hücre harf ('L'), soru kutusu ('C') ya da resim ('I').
+  Sol üst 3×3 resim, cevabı resmin sağındaki 2. satır. İlk satır/sütun soru kutusu. Kelimenin sorusu hemen
+  solundaki (▶) ya da üstündeki (▼) kutuda; bir kutuda en fazla iki soru. Kelime yeri en fazla 7 harf (`MAX_RUN`),
+  resim cevabı 9 harfe kadar. Üretim: rastgele şablon + düzeltme turları, sonra MRV + bit kümeli (`WordIndex`)
+  geri dönüşlü doldurma; doldurulamazsa yeni şablon (bütçe 6 sn). Ortalama ~0,2-0,5 sn. Başarısız olursa klasiğe düşer.
+- Kare kelime bankası `resources/bulmaca/kare-*.json` (`{"k": cevap, "i": kısa ipucu}`, ipucu ≤ 30 karakter, kutuya sığmalı).
+  Aynı cevabın birden çok ipucu olabilir. Yeni kelime ekledikten sonra `python tools/check-words.py` ile denetle
+  (yer tutucu, cevabını içeren ipucu, geçersiz harf, tekrar). 8+ harfli kelimeler sadece resim cevabı olarak kullanılabilir.
+- Resimli sorular `resimler.json` + `frontend/public/bulmaca/resim/` (ASCII dosya adları). Sadece Wikimedia Commons'tan
+  kamu malı / CC0 / CC BY / CC BY-SA. Yazar, lisans, kaynak oyunda ⓘ ile ve `KAYNAKLAR.md`'de gösterilir (lisans şartı).
+  Yeni resim: `tools/fetch-pictures.mjs` TOPICS listesine ekle → çalıştır → `tools/contact-sheet.mjs` ile gözle kontrol
+  et, yanlış eşleşenleri çıkar (arama bazen yanlış kişiyi/yeri getirir; ör. 11 Eylül fotoğrafı, kişinin kızı).
 - Sıralı ortak bulmaca: sıradaki oyuncu (takım modunda takımın tamamı) süre içinde istediği kelimeleri çözer;
   çözülen kelimeler herkes için açık kalır. Bulmaca bitene kadar sürer (güvenlik sınırı `MAX_ROUNDS` 10 tur).
 - Ayarlar (lobide): `sure` 45/60/90 sn, `zorluk` KOLAY/ORTA/ZOR. Orta ve zorda bir alt seviyeden %40 soru karışır.
@@ -146,8 +160,10 @@ frontend/src/
 - `cd tools && npm install && node browser-test.mjs`: gerçek Chrome ile iki oyuncu, ekran görüntüleri
   `tools/screenshots/` altına kaydedilir. Backend ve Vite açık olmalı. Headless ortamda saniyede 2-6 kare
   çizilir; zamanlamaya bağlı sahneler (drift anı, roket start) her koşuda aynı yere denk gelmeyebilir.
-- `cd tools && node bulmaca-test.mjs`: iki oyunculu Bulmaca testi (ayar seçimi, doğru/yanlış cevap, harf al, pas,
+- `cd tools && node bulmaca-test.mjs [klasör] [KARE|KLASIK]`: iki oyunculu Bulmaca testi (ayar seçimi, doğru/yanlış cevap, harf al, pas,
   sıra değişimi). Cevabı ekrandaki ipucunu soru bankasında arayarak bulur.
+- `mvnw.cmd test`: `KareGeneratorTest` 30 kare bulmaca üretir (hepsi dolmalı, boş hücre yok, tekrar yok) ve
+  bankayı denetler (ipucu uzunluğu, resim dosyası ve lisans bilgisi var mı).
 - `mvnw.cmd test` ayrıca `CrosswordGeneratorTest` (3 zorlukta 90 bulmaca üretip geçerliliğini denetler) ve
   `BulmacaSessionTest` (sıra, puan, seri, joker, pas, süre, takım, oyuncu çıkışı, bitiş, cevap gizliliği).
 - `cd tools && node spectate-bots.mjs`: tarayıcı oyuncusu (otopilotla) ve eşya kullanan iki bot yarışır, 3 sn'de bir
@@ -169,6 +185,8 @@ frontend/src/
 - [x] Yayın hazırlığı: Dockerfile (çok aşamalı), render.yaml, PORT ayarı. Canlı: https://partigame.onrender.com
 - [x] Kamera modları: yüksek açı / arkadan / tüm pist (C), seçim hatırlanır
 - [x] Platform: oyun ayarları (GameOption) ve lobide ayar seçimi
+- [x] Bulmaca **gazete tipi kare bulmaca**: tamamen dolu ızgara, kutularda sorular, 52 açık lisanslı resimli soru,
+      ~1.300 kısa ipuçlu kelime; klasik tip seçenek olarak duruyor
 - [x] **Bulmaca Kapışması** (2. oyun): ~340 soruluk Türkçe banka, otomatik bulmaca üretici, sıralı tur, seri bonusu,
       harf al jokeri, takım modu, lobide süre ve zorluk seçimi
 
@@ -179,5 +197,6 @@ frontend/src/
 3. [ ] Yeniden bağlanma (sayfa yenilenince odaya geri dönme; şu an oyuncu odadan düşüyor)
 4. [ ] Ses efektleri ve müzik (motor, drift, turbo), dokunmatik ve mobil kontroller
 5. [ ] Eşya fikirleri: üçlü turbo, sonuncuya yıldırım (herkesi yavaşlatır), eşya pası (takım)
-6. [ ] Bulmaca: soru bankasını büyütmek, kategoriler, özel soru paketi (ör. ofis soruları)
+6. [ ] Bulmaca: kelime bankasını büyütmek (özellikle 3-5 harf, daha az tekrar), daha çok resim, kategoriler,
+      özel soru paketi (ör. ofis soruları), kare bulmacada zorluk seviyesi
 7. [ ] Yeni mini oyunlar (parti platformu fikri: Bomberman tarzı, futbol ve benzeri)

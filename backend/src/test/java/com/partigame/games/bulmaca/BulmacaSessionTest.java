@@ -16,12 +16,18 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class BulmacaSessionTest {
 
     private static final ClueBank BANK = new ClueBank(ClueBank.load());
+    private static final KareBank KARE_BANK = new KareBank();
     private static final double DT = 1.0 / 30;
 
     private static BulmacaSession session(GameMode mode, PlayerInfo... players) {
+        return session(BulmacaModule.STYLE_KLASIK, mode, players);
+    }
+
+    private static BulmacaSession session(String style, GameMode mode, PlayerInfo... players) {
         return new BulmacaSession(new GameContext(mode, List.of(players),
-                Map.of(BulmacaModule.OPTION_TIME, "45", BulmacaModule.OPTION_DIFFICULTY, "KOLAY")),
-                BANK, new Random(42));
+                Map.of(BulmacaModule.OPTION_TIME, "45", BulmacaModule.OPTION_DIFFICULTY, "KOLAY",
+                        BulmacaModule.OPTION_STYLE, style)),
+                BANK, KARE_BANK, new Random(42));
     }
 
     private static PlayerInfo player(String id, int team) {
@@ -140,6 +146,30 @@ class BulmacaSessionTest {
         assertTrue(s.isFinished());
         assertEquals("a", s.results().getFirst().playerId());
         assertEquals(10, s.results().getFirst().points());
+    }
+
+    @Test
+    void kareBulmacaOynanirVeBiter() {
+        BulmacaSession s = session(BulmacaModule.STYLE_KARE, GameMode.FFA, player("a", 0));
+        assertTrue(s.crossword().kare(), "gazete tipi seçilince kare bulmaca üretilmeli");
+        BulmacaSession.Init init = (BulmacaSession.Init) s.initData();
+        assertEquals("KARE", init.style());
+        assertTrue(init.picture() != null && init.picture().image().startsWith("/bulmaca/resim/"));
+        run(s, 3.1);
+        for (Crossword.Entry e : s.crossword().entries()) {
+            if (snap(s).solvedBy().get(e.id()) == null) {
+                answer(s, "a", e, e.answer());
+            }
+        }
+        assertEquals(BulmacaSession.Phase.DONE, s.phase());
+    }
+
+    @Test
+    void kareBulmacadaResminCevabiIstemciyeGitmez() {
+        BulmacaSession s = session(BulmacaModule.STYLE_KARE, GameMode.FFA, player("a", 0));
+        String answer = s.crossword().picture().answer();
+        BulmacaSession.Init init = (BulmacaSession.Init) s.initData();
+        assertFalse(init.picture().toString().contains(answer), "resim bilgisinde cevap olmamalı");
     }
 
     @Test

@@ -1,0 +1,418 @@
+[
+  {
+    "cevap": "ATATÜRK",
+    "soru": "Resimdeki lider",
+    "dosya": "/bulmaca/resim/ataturk.jpg",
+    "yazar": "Unknown authorUnknown author",
+    "lisans": "Public domain",
+    "kaynak": "https://commons.wikimedia.org/wiki/File:Kemal_Atat%C3%BCrk_portrait.jpg"
+  },
+  {
+    "cevap": "MANÇO",
+    "soru": "Resimdeki sanatçının soyadı",
+    "dosya": "/bulmaca/resim/manco.jpg",
+    "yazar": "Erkan Umut",
+    "lisans": "Public domain",
+    "kaynak": "https://commons.wikimedia.org/wiki/File:Bar%C4%B1%C5%9F_Man%C3%A7o_cropped.JPG"
+  },
+  {
+    "cevap": "TARKAN",
+    "soru": "Resimdeki şarkıcı",
+    "dosya": "/bulmaca/resim/tarkan.jpg",
+    "yazar": "Hakki.T (Hakki Topcu)",
+    "lisans": "CC BY 2.0",
+    "kaynak": "https://commons.wikimedia.org/wiki/File:Tarkan_(9).jpg"
+  },
+  {
+    "cevap": "PAMUK",
+    "soru": "Resimdeki yazarın soyadı",
+    "dosya": "/bulmaca/resim/pamuk.jpg",
+    "yazar": "David Shankbone",
+    "lisans": "CC BY 3.0",
+    "kaynak": "https://commons.wikimedia.org/wiki/File:Orhan_Pamuk_2009_Shankbone.jpg"
+  },
+  {
+    "cevap": "NAZIM",
+    "soru": "Resimdeki şairin adı",
+    "dosya": "/bulmaca/resim/nazim.jpg",
+    "yazar": "Bright estrellas",
+    "lisans": "CC0",
+    "kaynak": "https://commons.wikimedia.org/wiki/File:Nazim_Hikmet_Ran.jpg"
+  },
+  {
+    "cevap": "EİNSTEİN",
+    "soru": "Resimdeki bilim insanı",
+    "dosya": "/bulmaca/resim/einstein.jpg",
+    "yazar": "Herman Mishkin. NY",
+    "lisans": "Public domain",
+    "kaynak": "https://commons.wikimedia.org/wiki/File:Albert_Einstein_by_Mishkin,_1921.png"
+  },
+  {
+    "cevap": "MOZART",
+    "soru": "Resimdeki besteci",
+    "dosya": "/bulmaca/resim/mozart.jpg",
+    "yazar": "Barbara Krafft",
+    "lisans": "Public domain",
+    "kaynak": "https://commons.wikimedia.org/wiki/File:Wolfgang-amadeus-mozart_1.jpg"
+  },
+  {
+    "cevap": "BEETHOVEN",
+    "soru": "Resimdeki besteci",
+    "dosya": "/bulmaca/resim/beethoven.jpg",
+    "yazar": "Joseph Karl Stieler",
+    "lisans": "Public domain",
+    "kaynak": "https://commons.wikimedia.org/wiki/File:Joseph_Karl_Stieler%27s_Beethoven_mit_dem_Manuskript_der_Missa_solemnis.jpg"
+  },
+  {
+    "cevap": "NAPOLYON",
+    "soru": "Resimdeki imparator",
+    "dosya": "/bulmaca/resim/napolyon.jpg",
+    "yazar": "Jacques-Louis David",
+    "lisans": "Public domain",
+    "kaynak": "https://commons.wikimedia.org/wiki/File:Napoleon_at_the_Great_St._Bernard_-_Jacques-Louis_David_-_Google_Cultural_Institute.jpg"
+  },
+  {
+    "cevap": "FATİH",
+    "soru": "Resimdeki padişahın unvanı",
+    "dosya": "/bulmaca/resim/fatih.jpg",
+    "yazar": "Gentile Bellini",
+    "lisans": "Public domain",
+    "kaynak": "https://commons.wikimedia.org/wiki/File:Bellini,_Gentile_-_Sultan_Mehmet_II.jpg"
+  },
+  {
+    "cevap": "KANUNİ",
+    "soru": "Resimdeki padişahın lakabı",
+    "dosya": "/bulmaca/resim/kanuni.jpg",
+    "yazar": "Circle of Titian",
+    "lisans": "Public domain",
+    "kaynak": "https://commons.wikimedia.org/wiki/File:EmperorSuleiman.jpg"
+  },
+  {
+    "cevap": "RONALDO",
+    "soru": "Resimdeki futbolcu",
+    "dosya": "/bulmaca/resim/ronaldo.jpg",
+    "yazar": "Ludovic Péron",
+    "lisans": "CC BY-SA 3.0",
+    "kaynak": "https://commons.wikimedia.org/wiki/File:Argentine_-_Portugal_-_Cristiano_Ronaldo.jpg"
+  },
+  {
+    "cevap": "KIZKULESİ",
+    "soru": "Resimdeki yapı",
+    "dosya": "/bulmaca/resim/kizkulesi.jpg",
+    "yazar": "Matti Blume",
+    "lisans": "CC BY-SA 4.0",
+    "kaynak": "https://commons.wikimedia.org/wiki/File:Maiden_tower,_Istanbul_(P1100206).jpg"
+  },
+  {
+    "cevap": "AYASOFYA",
+    "soru": "Resimdeki yapı",
+    "dosya": "/bulmaca/resim/ayasofya.jpg",
+    "yazar": "Arild Vågen",
+    "lisans": "CC BY-SA 3.0",
+    "kaynak": "https://commons.wikimedia.org/wiki/File:Hagia_Sophia_Mars_2013.jpg"
+  },
+  {
+    "cevap": "EFES",
+    "soru": "Resimdeki antik kent",
+    "dosya": "/bulmaca/resim/efes.jpg",
+    "yazar": "Benh LIEU SONG",
+    "lisans": "CC BY-SA 3.0",
+    "kaynak": "https://commons.wikimedia.org/wiki/File:Ephesus_Celsus_Library_Fa%C3%A7ade.jpg"
+  },
+  {
+    "cevap": "PAMUKKALE",
+    "soru": "Resimdeki doğa harikası",
+    "dosya": "/bulmaca/resim/pamukkale.jpg",
+    "yazar": "Slyronit",
+    "lisans": "CC BY-SA 4.0",
+    "kaynak": "https://commons.wikimedia.org/wiki/File:The_travertines_of_Pamukkale_3.jpg"
+  },
+  {
+    "cevap": "NEMRUT",
+    "soru": "Resimdeki dağ",
+    "dosya": "/bulmaca/resim/nemrut.jpg",
+    "yazar": "Mkrc85",
+    "lisans": "CC BY-SA 4.0",
+    "kaynak": "https://commons.wikimedia.org/wiki/File:APOLLON_NEMRUT_MOUNTAIN.jpg"
+  },
+  {
+    "cevap": "KAPADOKYA",
+    "soru": "Resimdeki bölge",
+    "dosya": "/bulmaca/resim/kapadokya.jpg",
+    "yazar": "belemita@gmail.com",
+    "lisans": "CC BY 3.0",
+    "kaynak": "https://commons.wikimedia.org/wiki/File:Fairy_chimneys_in_Cappadocia_-_panoramio.jpg"
+  },
+  {
+    "cevap": "SÜMELA",
+    "soru": "Resimdeki manastır",
+    "dosya": "/bulmaca/resim/sumela.jpg",
+    "yazar": "Bjørn Christian Tørrissen",
+    "lisans": "CC BY-SA 3.0",
+    "kaynak": "https://commons.wikimedia.org/wiki/File:Sumela_From_Across_Valley.JPG"
+  },
+  {
+    "cevap": "EYFEL",
+    "soru": "Resimdeki kulenin adı",
+    "dosya": "/bulmaca/resim/eyfel.jpg",
+    "yazar": "Benh LIEU SONG",
+    "lisans": "Public domain",
+    "kaynak": "https://commons.wikimedia.org/wiki/File:Tour_Eiffel_Wikimedia_Commons.jpg"
+  },
+  {
+    "cevap": "KOLEZYUM",
+    "soru": "Resimdeki yapı",
+    "dosya": "/bulmaca/resim/kolezyum.jpg",
+    "yazar": "Wilfredor",
+    "lisans": "CC0",
+    "kaynak": "https://commons.wikimedia.org/wiki/File:Colosseum_of_Rome_and_Roman_forum.jpg"
+  },
+  {
+    "cevap": "PİRAMİT",
+    "soru": "Resimdeki yapı",
+    "dosya": "/bulmaca/resim/piramit.jpg",
+    "yazar": "Ricardo Liberato",
+    "lisans": "CC BY-SA 2.0",
+    "kaynak": "https://commons.wikimedia.org/wiki/File:All_Gizah_Pyramids.jpg"
+  },
+  {
+    "cevap": "TACMAHAL",
+    "soru": "Resimdeki yapı",
+    "dosya": "/bulmaca/resim/tacmahal.jpg",
+    "yazar": "Yann; edited by King of Hearts",
+    "lisans": "CC BY-SA 4.0",
+    "kaynak": "https://commons.wikimedia.org/wiki/File:Taj_Mahal,_Agra,_India_edit2.jpg"
+  },
+  {
+    "cevap": "LONDRA",
+    "soru": "Resimdeki saat kulesinin şehri",
+    "dosya": "/bulmaca/resim/londra.jpg",
+    "yazar": "Colin",
+    "lisans": "CC BY-SA 4.0",
+    "kaynak": "https://commons.wikimedia.org/wiki/File:Big_Ben_at_sunset_-_2014-10-27_17-30.jpg"
+  },
+  {
+    "cevap": "PİSA",
+    "soru": "Resimdeki eğik kulenin şehri",
+    "dosya": "/bulmaca/resim/pisa.jpg",
+    "yazar": "MHoser",
+    "lisans": "CC BY-SA 4.0",
+    "kaynak": "https://commons.wikimedia.org/wiki/File:The_Duomo_and_Tower_of_Pisa_at_sunrise.jpg"
+  },
+  {
+    "cevap": "ÖZGÜRLÜK",
+    "soru": "Resimdeki ... Heykeli",
+    "dosya": "/bulmaca/resim/ozgurluk.jpg",
+    "yazar": "Elcobbola",
+    "lisans": "Public domain",
+    "kaynak": "https://commons.wikimedia.org/wiki/File:Statue_of_Liberty_7.jpg"
+  },
+  {
+    "cevap": "MONALİSA",
+    "soru": "Resimdeki tablo",
+    "dosya": "/bulmaca/resim/monalisa.jpg",
+    "yazar": "Leonardo da Vinci",
+    "lisans": "Public domain",
+    "kaynak": "https://commons.wikimedia.org/wiki/File:Mona_Lisa,_by_Leonardo_da_Vinci,_from_C2RMF_retouched.jpg"
+  },
+  {
+    "cevap": "VANGOGH",
+    "soru": "Resimdeki tablonun ressamı",
+    "dosya": "/bulmaca/resim/vangogh.jpg",
+    "yazar": "Vincent van Gogh",
+    "lisans": "Public domain",
+    "kaynak": "https://commons.wikimedia.org/wiki/File:VanGogh-starry_night_ballance1.jpg"
+  },
+  {
+    "cevap": "ÇIĞLIK",
+    "soru": "Resimdeki tablo",
+    "dosya": "/bulmaca/resim/ciglik.jpg",
+    "yazar": "Edvard Munch",
+    "lisans": "Public domain",
+    "kaynak": "https://commons.wikimedia.org/wiki/File:Edvard_Munch,_1893,_The_Scream,_oil,_tempera_and_pastel_on_cardboard,_91_x_73_cm,_National_Gallery_of_Norway.jpg"
+  },
+  {
+    "cevap": "TERBİYECİ",
+    "soru": "Kaplumbağa ... (resimdeki tablo)",
+    "dosya": "/bulmaca/resim/terbiyeci.jpg",
+    "yazar": "Osman Hamdi Bey",
+    "lisans": "Public domain",
+    "kaynak": "https://commons.wikimedia.org/wiki/File:Osman_Hamdi_Bey_-_The_Tortoise_Trainer_-_Google_Art_Project.jpg"
+  },
+  {
+    "cevap": "PANDA",
+    "soru": "Resimdeki hayvan",
+    "dosya": "/bulmaca/resim/panda.jpg",
+    "yazar": "KQuhen",
+    "lisans": "CC BY-SA 4.0",
+    "kaynak": "https://commons.wikimedia.org/wiki/File:Giant_panda_eating_bamboo_Taipei_Zoo.jpg"
+  },
+  {
+    "cevap": "FLAMİNGO",
+    "soru": "Resimdeki kuş",
+    "dosya": "/bulmaca/resim/flamingo.jpg",
+    "yazar": "Giles Laurent",
+    "lisans": "CC BY-SA 4.0",
+    "kaynak": "https://commons.wikimedia.org/wiki/File:001_Greater_flamingo_in_flight_in_the_Camargue_Photo_by_Giles_Laurent.jpg"
+  },
+  {
+    "cevap": "ZÜRAFA",
+    "soru": "Resimdeki hayvan",
+    "dosya": "/bulmaca/resim/zurafa.jpg",
+    "yazar": "Byrdyak",
+    "lisans": "CC BY-SA 4.0",
+    "kaynak": "https://commons.wikimedia.org/wiki/File:Three_giraffes_01.jpg"
+  },
+  {
+    "cevap": "PENGUEN",
+    "soru": "Resimdeki hayvan",
+    "dosya": "/bulmaca/resim/penguen.jpg",
+    "yazar": "Christopher Michel",
+    "lisans": "CC BY 2.0",
+    "kaynak": "https://commons.wikimedia.org/wiki/File:Penguin_in_Antarctica_jumping_out_of_the_water.jpg"
+  },
+  {
+    "cevap": "KOALA",
+    "soru": "Resimdeki hayvan",
+    "dosya": "/bulmaca/resim/koala.jpg",
+    "yazar": "Till Niermann",
+    "lisans": "CC BY 3.0",
+    "kaynak": "https://commons.wikimedia.org/wiki/File:Koala_in_Zoo_Duisburg.jpg"
+  },
+  {
+    "cevap": "BAYKUŞ",
+    "soru": "Resimdeki kuş",
+    "dosya": "/bulmaca/resim/baykus.jpg",
+    "yazar": "Michael Gäbler",
+    "lisans": "CC BY 3.0",
+    "kaynak": "https://commons.wikimedia.org/wiki/File:Tyto_alba_(Scopoli,_1769).jpg"
+  },
+  {
+    "cevap": "ZEBRA",
+    "soru": "Resimdeki hayvan",
+    "dosya": "/bulmaca/resim/zebra.jpg",
+    "yazar": "Yathin S Krishnappa",
+    "lisans": "CC BY-SA 3.0",
+    "kaynak": "https://commons.wikimedia.org/wiki/File:Equus_quagga_(Namutoni,_2012).jpg"
+  },
+  {
+    "cevap": "AHTAPOT",
+    "soru": "Resimdeki deniz canlısı",
+    "dosya": "/bulmaca/resim/ahtapot.jpg",
+    "yazar": "Comingio Merculiano (1845-1915) in Jatta Giuseppe (1860-1903)",
+    "lisans": "Public domain",
+    "kaynak": "https://commons.wikimedia.org/wiki/File:Octopus_vulgaris_Merculiano.jpg"
+  },
+  {
+    "cevap": "KAPLAN",
+    "soru": "Resimdeki hayvan",
+    "dosya": "/bulmaca/resim/kaplan.jpg",
+    "yazar": "Charles J. Sharp",
+    "lisans": "CC BY-SA 4.0",
+    "kaynak": "https://commons.wikimedia.org/wiki/File:Bengal_tiger_(Panthera_tigris_tigris)_female_3.jpg"
+  },
+  {
+    "cevap": "TAVUSKUŞU",
+    "soru": "Resimdeki kuş",
+    "dosya": "/bulmaca/resim/tavuskusu.jpg",
+    "yazar": "Rick Obst",
+    "lisans": "CC BY 2.0",
+    "kaynak": "https://commons.wikimedia.org/wiki/File:Peacock_displaying_tail_feathers_in_Mildred_Kanipe_Memorial_County_Park.jpg"
+  },
+  {
+    "cevap": "SEMAVER",
+    "soru": "Resimdeki çay aracı",
+    "dosya": "/bulmaca/resim/semaver.jpg",
+    "yazar": "fmucar",
+    "lisans": "CC BY-SA 3.0",
+    "kaynak": "https://commons.wikimedia.org/wiki/File:Turkish_samovar_3-1.jpg"
+  },
+  {
+    "cevap": "NAZARLIK",
+    "soru": "Resimdeki uğur nesnesi",
+    "dosya": "/bulmaca/resim/nazarlik.jpg",
+    "yazar": "Aliakyuz",
+    "lisans": "CC BY-SA 4.0",
+    "kaynak": "https://commons.wikimedia.org/wiki/File:Evil_eye_bead_or_Nazar_Boncuk.jpg"
+  },
+  {
+    "cevap": "BAĞLAMA",
+    "soru": "Resimdeki çalgı",
+    "dosya": "/bulmaca/resim/baglama.jpg",
+    "yazar": "Yagznl",
+    "lisans": "CC BY-SA 4.0",
+    "kaynak": "https://commons.wikimedia.org/wiki/File:Alevi_Baglama_(Turkish_folk_instrument)_repairman,_who_has_been_making_baglama_for_years,_plays_the_instrument_he_has_repaired.jpg"
+  },
+  {
+    "cevap": "BAKLAVA",
+    "soru": "Resimdeki tatlı",
+    "dosya": "/bulmaca/resim/baklava.jpg",
+    "yazar": "Kultigin",
+    "lisans": "Public domain",
+    "kaynak": "https://commons.wikimedia.org/wiki/File:Baklava_-_Turkish_special,_80-ply.JPEG"
+  },
+  {
+    "cevap": "SİMİT",
+    "soru": "Resimdeki yiyecek",
+    "dosya": "/bulmaca/resim/simit.jpg",
+    "yazar": "Bilinmiyor",
+    "lisans": "CC BY-SA 3.0",
+    "kaynak": "https://commons.wikimedia.org/wiki/File:Simit-2x.JPG"
+  },
+  {
+    "cevap": "LAHMACUN",
+    "soru": "Resimdeki yiyecek",
+    "dosya": "/bulmaca/resim/lahmacun.jpg",
+    "yazar": "No machine-readable author provided. Rainer Zenz assumed (based on copyright cla",
+    "lisans": "CC BY-SA 3.0",
+    "kaynak": "https://commons.wikimedia.org/wiki/File:Lahmacun.jpg"
+  },
+  {
+    "cevap": "MANTI",
+    "soru": "Resimdeki yemek",
+    "dosya": "/bulmaca/resim/manti.jpg",
+    "yazar": "E4024",
+    "lisans": "CC BY-SA 4.0",
+    "kaynak": "https://commons.wikimedia.org/wiki/File:MANTI_from_Turkey.jpg"
+  },
+  {
+    "cevap": "KÜNEFE",
+    "soru": "Resimdeki tatlı",
+    "dosya": "/bulmaca/resim/kunefe.jpg",
+    "yazar": "PeleYoetz",
+    "lisans": "CC0",
+    "kaynak": "https://commons.wikimedia.org/wiki/File:Knafeh_in_Nazareth,_Israel.png"
+  },
+  {
+    "cevap": "LALE",
+    "soru": "Resimdeki çiçek",
+    "dosya": "/bulmaca/resim/lale.jpg",
+    "yazar": "Acabashi",
+    "lisans": "CC BY-SA 4.0",
+    "kaynak": "https://commons.wikimedia.org/wiki/File:Red_and_white_tulip_at_Myddelton_House,_Enfield,_London.jpg"
+  },
+  {
+    "cevap": "AYÇİÇEĞİ",
+    "soru": "Resimdeki çiçek",
+    "dosya": "/bulmaca/resim/aycicegi.jpg",
+    "yazar": "Juliancolton",
+    "lisans": "CC BY-SA 4.0",
+    "kaynak": "https://commons.wikimedia.org/wiki/File:Sunflower_field_Milky_Way.jpg"
+  },
+  {
+    "cevap": "VOLKAN",
+    "soru": "Resimdeki doğa olayı",
+    "dosya": "/bulmaca/resim/volkan.jpg",
+    "yazar": "Wolfgang Beyer",
+    "lisans": "CC BY-SA 3.0",
+    "kaynak": "https://commons.wikimedia.org/wiki/File:Stromboli_Eruption.jpg"
+  },
+  {
+    "cevap": "GÖKKUŞAĞI",
+    "soru": "Resimdeki doğa olayı",
+    "dosya": "/bulmaca/resim/gokkusagi.jpg",
+    "yazar": "Basile Morin",
+    "lisans": "CC BY-SA 4.0",
+    "kaynak": "https://commons.wikimedia.org/wiki/File:Landscape_with_rainbow_and_the_Old_Bridge_over_the_Nam_Khan_river_in_Luang_Prabang_Laos.jpg"
+  }
+]

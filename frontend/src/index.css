@@ -684,6 +684,198 @@ label {
   color: var(--accent-2);
 }
 
+/* Bulmaca: gazete tipi kare bulmaca */
+.bm-main.kare {
+  grid-template-columns: auto minmax(300px, 380px);
+  justify-content: center;
+}
+
+@media (max-width: 1000px) {
+  .bm-main.kare {
+    grid-template-columns: 1fr;
+  }
+}
+
+.kb-grid {
+  /* Sağda cevap paneli, üstte sıra çubuğu var; hücre ikisine birden sığsın. */
+  --kc: min(74px, calc((100vw - 470px) / var(--kb-cols)), calc((100vh - 215px) / var(--kb-rows)));
+  display: grid;
+  gap: 2px;
+  padding: 8px;
+  background: #1b1d2e;
+  border: 2px solid #3a3f5c;
+  border-radius: 10px;
+}
+
+@media (max-width: 1000px) {
+  .kb-grid {
+    --kc: min(64px, calc((100vw - 52px) / var(--kb-cols)));
+  }
+}
+
+.kb-letter {
+  background: #f4f1e8;
+  color: #1b1d2e;
+  display: grid;
+  place-items: center;
+  font-size: calc(var(--kc) * 0.5);
+  font-weight: 800;
+  border-radius: 3px;
+  cursor: pointer;
+  transition: background 0.3s;
+}
+
+.kb-letter.selected {
+  background: #fff3c4;
+  outline: 3px solid var(--accent-2);
+  outline-offset: -3px;
+}
+
+.kb-letter.flash {
+  animation: bm-flash 1.2s ease-out;
+}
+
+.kb-clue {
+  background: #cfe3f5;
+  border-radius: 3px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.kb-clue.empty {
+  background: #2c3150;
+}
+
+.kb-clue.double .kb-clue-part + .kb-clue-part {
+  border-top: 1px solid #8fb2d4;
+}
+
+.kb-clue-part {
+  flex: 1;
+  min-height: 0;
+  position: relative;
+  border: none;
+  border-radius: 0;
+  padding: 2px 3px 2px 3px;
+  background: transparent;
+  color: #1b2a44;
+  font-size: calc(var(--kc) * 0.14);
+  font-weight: 700;
+  line-height: 1.12;
+  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.kb-clue-part:hover:not(:disabled) {
+  background: #b5d3ef;
+}
+
+.kb-clue-part:disabled {
+  opacity: 1;
+  cursor: default;
+}
+
+.kb-clue-part.selected {
+  background: #ffd86b;
+}
+
+.kb-clue-part.solved {
+  color: #7c8aa3;
+  text-decoration: line-through;
+}
+
+.kb-clue-text {
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.kb-clue.double .kb-clue-text {
+  -webkit-line-clamp: 2;
+}
+
+/* Ok, cevabın başladığı kenarda: soldan sağa için sağ kenarın ortası, yukarıdan aşağı için alt kenarın ortası. */
+.kb-arrow {
+  position: absolute;
+  font-size: calc(var(--kc) * 0.16);
+  line-height: 1;
+  color: #c0392b;
+}
+
+.kb-arrow.across {
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.kb-arrow.down {
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.kb-clue-part {
+  padding-right: calc(var(--kc) * 0.14);
+  padding-bottom: calc(var(--kc) * 0.1);
+}
+
+.kb-image {
+  position: relative;
+  border-radius: 4px;
+  overflow: hidden;
+  cursor: pointer;
+  background: #000;
+}
+
+.kb-image.selected {
+  outline: 3px solid var(--accent-2);
+  outline-offset: -3px;
+}
+
+.kb-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.kb-image-q {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 4px 6px;
+  background: #000b;
+  color: #fff;
+  font-size: calc(var(--kc) * 0.17);
+  font-weight: 700;
+  text-align: center;
+}
+
+.kb-image-arrow {
+  position: absolute;
+  right: 2px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #ffd86b;
+  font-size: calc(var(--kc) * 0.3);
+  text-shadow: 0 0 4px #000;
+}
+
+.kb-credit {
+  position: absolute;
+  top: 3px;
+  right: 4px;
+  color: #fff;
+  text-decoration: none;
+  font-size: 13px;
+  text-shadow: 0 0 3px #000;
+}
+
 /* Pist Kaosu göstergeleri */
 .pk-canvas {
   display: block;

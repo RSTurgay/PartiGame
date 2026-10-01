@@ -9,12 +9,28 @@ export interface WordView {
   col: number
   length: number
   clue: string
+  /** Kare bulmacada sorunun bulunduğu kutu; resmin sorusu için -1. Klasikte -1. */
+  clueRow: number
+  clueCol: number
+}
+
+export interface PictureView {
+  image: string
+  question: string
+  author: string
+  license: string
+  source: string
 }
 
 export interface BulmacaInit {
+  /** KARE: gazete tipi (sorular kutularda), KLASIK: ipuçları yanda listede */
+  style: 'KARE' | 'KLASIK'
   rows: number
   cols: number
   words: WordView[]
+  /** Kare bulmacada satır başına hücre türleri: 'L' harf, 'C' soru kutusu, 'I' resim */
+  layout: string[] | null
+  picture: PictureView | null
   turnSeconds: number
   difficulty: string
   players: { id: string; name: string; color: string; team: number }[]

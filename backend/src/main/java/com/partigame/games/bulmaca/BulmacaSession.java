@@ -5,6 +5,8 @@ import com.partigame.game.GameMode;
 import com.partigame.game.GameSession;
 import com.partigame.game.PlayerInfo;
 import com.partigame.game.PlayerResult;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -35,6 +37,8 @@ final class BulmacaSession implements GameSession {
 
     enum Phase { INTRO, TURN, SWITCH, DONE }
 
+    private static final Logger log = LoggerFactory.getLogger(BulmacaSession.class);
+
     private final Crossword crossword;
     private final char[][] solution;
     private final boolean[][] revealed;
@@ -60,16 +64,33 @@ final class BulmacaSession implements GameSession {
     private int streak;
     private boolean solvedThisRound;
 
-    BulmacaSession(GameContext context, ClueBank bank, Random random) {
+    BulmacaSession(GameContext context, ClueBank bank, KareBank kareBank, Random random) {
         this.random = random;
         this.players = context.players();
         this.turnSeconds = Double.parseDouble(context.option(BulmacaModule.OPTION_TIME, "60"));
         this.difficulty = Difficulty.valueOf(context.option(BulmacaModule.OPTION_DIFFICULTY, Difficulty.ORTA.name()));
-        this.crossword = new CrosswordGenerator(random).generate(difficulty.pool(bank.all(), random));
+        boolean kare = BulmacaModule.STYLE_KARE.equals(context.option(BulmacaModule.OPTION_STYLE, BulmacaModule.STYLE_KARE));
+        this.crossword = generate(kare, bank, kareBank);
         this.solution = crossword.solution();
         this.revealed = new boolean[crossword.rows()][crossword.cols()];
         buildTurnGroups(context.mode());
         players.forEach(p -> points.put(p.id(), 0));
+    }
+
+    /** Kare bulmaca nadiren süresinde doldurulamazsa oyun takılmasın diye klasik bulmacaya düşülür. */
+    private Crossword generate(boolean kare, ClueBank bank, KareBank kareBank) {
+        if (kare && !kareBank.pictures().isEmpty()) {
+            List<Picture> pictures = kareBank.pictures().stream()
+                    .filter(p -> p.answer().length() <= KareGenerator.COLS - KareGenerator.IMAGE)
+                    .toList();
+            Picture picture = pictures.get(random.nextInt(pictures.size()));
+            Crossword result = new KareGenerator(random, kareBank.clues()).generate(picture);
+            if (result != null) {
+                return result;
+            }
+            log.warn("Kare bulmaca üretilemedi, klasik bulmacaya geçiliyor");
+        }
+        return new CrosswordGenerator(random).generate(difficulty.pool(bank.all(), random));
     }
 
     private void buildTurnGroups(GameMode mode) {
@@ -85,9 +106,13 @@ final class BulmacaSession implements GameSession {
     @Override
     public Object initData() {
         List<WordView> words = crossword.entries().stream()
-                .map(e -> new WordView(e.id(), e.number(), e.across(), e.row(), e.col(), e.length(), e.clue()))
+                .map(e -> new WordView(e.id(), e.number(), e.across(), e.row(), e.col(), e.length(), e.clue(),
+                        e.clueRow(), e.clueCol()))
                 .toList();
-        return new Init(crossword.rows(), crossword.cols(), words, (int) turnSeconds, difficulty.label, players);
+        String label = crossword.kare() ? "Gazete tipi" : difficulty.label;
+        return new Init(crossword.kare() ? BulmacaModule.STYLE_KARE : BulmacaModule.STYLE_KLASIK,
+                crossword.rows(), crossword.cols(), words, crossword.layout(), crossword.picture(),
+                (int) turnSeconds, label, players);
     }
 
     @Override
@@ -364,12 +389,32 @@ final class BulmacaSession implements GameSession {
 
     // ---- İstemciye giden veriler (frontend games/bulmaca/types.ts ile eşleşir) ----
 
-    /** Cevaplar yok: sadece yer, uzunluk ve ipucu. */
-    record WordView(int id, int number, boolean across, int row, int col, int length, String clue) {
+    /**
+     * Cevaplar yok: sadece yer, uzunluk ve ipucu. Kare bulmacada {@code clueRow/clueCol} sorunun bulunduğu
+     * kutudur; resmin sorusu için -1.
+     */
+    record WordView(int id, int number, boolean across, int row, int col, int length, String clue,
+                    int clueRow, int clueCol) {
     }
 
-    record Init(int rows, int cols, List<WordView> words, int turnSeconds, String difficulty,
-                List<PlayerInfo> players) {
+    /**
+     * {@code style}: KARE veya KLASIK. {@code layout}: kare bulmacada satır başına hücre türleri
+     * ('L' harf, 'C' soru kutusu, 'I' resim), klasikte null. {@code picture}: kare bulmacanın resmi
+     * (cevabı da içerir ama cevap alanı istemciye gönderilmez, bkz. {@link PictureView}).
+     */
+    record Init(String style, int rows, int cols, List<WordView> words, List<String> layout, PictureView picture,
+                int turnSeconds, String difficulty, List<PlayerInfo> players) {
+
+        Init(String style, int rows, int cols, List<WordView> words, List<String> layout, Picture picture,
+             int turnSeconds, String difficulty, List<PlayerInfo> players) {
+            this(style, rows, cols, words, layout, picture == null ? null : new PictureView(picture.image(),
+                            picture.question(), picture.author(), picture.license(), picture.source()),
+                    turnSeconds, difficulty, players);
+        }
+    }
+
+    /** Resmin istemciye giden hali: cevap yok. */
+    record PictureView(String image, String question, String author, String license, String source) {
     }
 
     /**

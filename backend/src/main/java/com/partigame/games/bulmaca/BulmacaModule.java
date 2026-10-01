@@ -21,12 +21,17 @@ public class BulmacaModule implements GameModule {
 
     static final String OPTION_TIME = "sure";
     static final String OPTION_DIFFICULTY = "zorluk";
+    static final String OPTION_STYLE = "tip";
+    static final String STYLE_KARE = "KARE";
+    static final String STYLE_KLASIK = "KLASIK";
 
     private final ClueBank bank;
+    private final KareBank kareBank;
     private final Random random = new Random();
 
-    public BulmacaModule(ClueBank bank) {
+    public BulmacaModule(ClueBank bank, KareBank kareBank) {
         this.bank = bank;
+        this.kareBank = kareBank;
     }
 
     @Override
@@ -62,14 +67,16 @@ public class BulmacaModule implements GameModule {
     @Override
     public List<GameOption> options() {
         return List.of(
+                new GameOption(OPTION_STYLE, "Bulmaca tipi", List.of(
+                        new Choice(STYLE_KARE, "Gazete (kare)"), new Choice(STYLE_KLASIK, "Klasik")), STYLE_KARE),
                 new GameOption(OPTION_TIME, "Tur süresi", List.of(
                         new Choice("45", "45 sn"), new Choice("60", "60 sn"), new Choice("90", "90 sn")), "60"),
-                new GameOption(OPTION_DIFFICULTY, "Zorluk", Arrays.stream(Difficulty.values())
+                new GameOption(OPTION_DIFFICULTY, "Zorluk (klasik)", Arrays.stream(Difficulty.values())
                         .map(d -> new Choice(d.name(), d.label)).toList(), Difficulty.ORTA.name()));
     }
 
     @Override
     public GameSession createSession(GameContext context) {
-        return new BulmacaSession(context, bank, new Random(random.nextLong()));
+        return new BulmacaSession(context, bank, kareBank, new Random(random.nextLong()));
     }
 }

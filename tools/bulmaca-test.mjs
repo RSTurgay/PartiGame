@@ -1,14 +1,22 @@
 // Bulmaca Kapışması tarayıcı testi: iki oyuncu, lobide ayar seçimi, doğru/yanlış cevap, harf alma, pas, sıra değişimi.
 // Cevaplar istemciye gönderilmediği için ekrandaki ipucu soru bankasında aranır.
-// Kullanım: cd tools && node bulmaca-test.mjs [çıktı-klasörü]   (backend :8080 ve Vite :5173 açık olmalı)
-import { mkdirSync, readFileSync } from 'node:fs'
+// Kullanım: cd tools && node bulmaca-test.mjs [çıktı-klasörü] [KARE|KLASIK]   (backend :8080 ve Vite :5173 açık olmalı)
+import { mkdirSync, readdirSync, readFileSync } from 'node:fs'
 import puppeteer from 'puppeteer-core'
 
 const OUT = process.argv[2] ?? 'screenshots'
+const STYLE = process.argv[3] ?? 'KARE'
 mkdirSync(OUT, { recursive: true })
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
-const bank = JSON.parse(readFileSync(new URL('../backend/src/main/resources/bulmaca/sorular.json', import.meta.url)))
-const answerFor = (clueText) => bank.find((q) => q.ipucu === clueText)?.cevap
+// İpucu → olası cevaplar (aynı ipucunun birden çok cevabı olabilir: "Bir nota" gibi)
+const resources = new URL('../backend/src/main/resources/bulmaca/', import.meta.url)
+const answersFor = new Map()
+const addAnswer = (clue, answer) => answersFor.set(clue, [...(answersFor.get(clue) ?? []), answer])
+for (const q of JSON.parse(readFileSync(new URL('sorular.json', resources)))) addAnswer(q.ipucu, q.cevap)
+for (const f of readdirSync(resources).filter((f) => f.startsWith('kare-'))) {
+  for (const w of JSON.parse(readFileSync(new URL(f, resources)))) addAnswer(w.i, w.k)
+}
+for (const p of JSON.parse(readFileSync(new URL('resimler.json', resources)))) addAnswer(p.soru, p.cevap)
 
 const browser = await puppeteer.launch({
   executablePath: process.env.CHROME_PATH ?? 'C:/Program Files/Google/Chrome/Application/chrome.exe',
@@ -35,10 +43,30 @@ async function clickByText(page, selector, text) {
   throw new Error(`Bulunamadı: ${selector} "${text}"`)
 }
 
-/** Seçili kelimenin ipucu metni ("3. Soldan sağa Başkentimiz (6)" → "Başkentimiz"). */
+/** Seçili kelimenin ipucu ve uzunluğu ("▶ Soldan sağa Başkentimiz (6)" → ["Başkentimiz", 6]). */
 async function selectedClue(page) {
   const raw = await page.$eval('.bm-answer-clue', (e) => e.textContent)
-  return raw.replace(/^\d+\.\s*(Soldan sağa|Yukarıdan aşağıya)\s*/, '').replace(/\s*\(\d+\)\s*$/, '')
+  const length = Number(raw.match(/\((\d+)\)\s*$/)[1])
+  const clue = raw
+    .replace(/^(\d+\.\s*)?(▶ |▼ |📷 )?(Soldan sağa|Yukarıdan aşağıya|Resim sorusu)\s*/, '')
+    .replace(/\s*\(\d+\)\s*$/, '')
+  return [clue, length]
+}
+
+/** Seçili kelimeyi bilene kadar aday cevapları dener; bildiyse cevabı döner. */
+async function solveSelected(page, label) {
+  const [clue, length] = await selectedClue(page)
+  const candidates = (answersFor.get(clue) ?? []).filter((a) => [...a].length === length)
+  console.log(`${label} ipucu: ${clue} (${length}) → adaylar: ${candidates.join(', ')}`)
+  for (const answer of candidates) {
+    const before = await page.$eval('.bm-score', (e) => e.textContent)
+    await page.type('.bm-answer-row input', answer.toLocaleLowerCase('tr-TR'))
+    await page.keyboard.press('Enter')
+    await sleep(700)
+    const after = await page.$eval('.bm-score', (e) => e.textContent).catch(() => before)
+    if (after !== before) return answer
+  }
+  return null
 }
 
 const host = await openPage('host')
@@ -64,6 +92,7 @@ await clickByText(host, '.game-card', 'Bulmaca')
 await sleep(300)
 await clickByText(host, '.chip', '45 sn')
 await clickByText(host, '.chip', 'Kolay')
+await clickByText(host, '.chip', STYLE === 'KARE' ? 'Gazete' : 'Klasik')
 await sleep(300)
 const guestSees = await guest.$$eval('.chip.selected', (els) => els.map((e) => e.textContent))
 console.log('misafirin gördüğü seçimler:', guestSees)
@@ -76,12 +105,7 @@ await sleep(300)
 await host.screenshot({ path: `${OUT}/b2-sira-bende.png` })
 
 // Doğru cevap
-const clue = await selectedClue(host)
-const answer = answerFor(clue)
-console.log('ipucu:', clue, '→', answer)
-await host.type('.bm-answer-row input', answer.toLocaleLowerCase('tr-TR'))
-await host.keyboard.press('Enter')
-await sleep(600)
+console.log('bilinen:', await solveSelected(host, 'host'))
 const scoreAfterCorrect = await host.$eval('.bm-score', (e) => e.textContent)
 console.log('doğru cevaptan sonra puan satırı:', scoreAfterCorrect)
 await host.screenshot({ path: `${OUT}/b3-dogru.png` })
@@ -101,12 +125,7 @@ await sleep(3200)
 // Misafirin sırası (izleyen ekranı sonra host'ta çekilir)
 await guest.bringToFront()
 await guest.waitForSelector('.bm-answer', { timeout: 5000 })
-const guestClue = await selectedClue(guest)
-const guestAnswer = answerFor(guestClue)
-console.log('misafir ipucu:', guestClue, '→', guestAnswer)
-await guest.type('.bm-answer-row input', guestAnswer)
-await guest.keyboard.press('Enter')
-await sleep(600)
+console.log('misafirin bildiği:', await solveSelected(guest, 'misafir'))
 await guest.screenshot({ path: `${OUT}/b5-misafir.png` })
 await host.bringToFront()
 await host.screenshot({ path: `${OUT}/b6-izleyen.png` })
